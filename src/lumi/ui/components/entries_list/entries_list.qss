@@ -1,0 +1,33 @@
+#EntriesList {
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+
+#EntriesList::item {
+    border: none;
+    padding: 0;
+}
+
+#EntriesList QScrollBar:vertical,
+#EntriesList QScrollBar:horizontal {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
+#EntriesList QScrollBar::handle:vertical,
+#EntriesList QScrollBar::handle:horizontal,
+#EntriesList QScrollBar::add-line:vertical,
+#EntriesList QScrollBar::sub-line:vertical,
+#EntriesList QScrollBar::add-line:horizontal,
+#EntriesList QScrollBar::sub-line:horizontal {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+    border: none;
+}
+
+#LibraryEntriesPanel {
+    background-color: transparent;
+}

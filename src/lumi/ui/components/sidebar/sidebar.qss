@@ -1,0 +1,82 @@
+#Sidebar {
+    background-color: @SIDEBAR_BG@;
+    border: none;
+}
+
+#Sidebar QLabel {
+    background-color: transparent;
+    border: none;
+}
+
+#Sidebar QFrame#divider {
+    background-color: @SIDEBAR_DIVIDER@;
+    max-height: 1px;
+    border: none;
+}
+
+#Sidebar QLabel#sectionLabel {
+    color: @SIDEBAR_LABEL@;
+    font-size: @FONT_SIZE_XS@px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    background-color: transparent;
+    border: none;
+    padding: 0 0 @SPACE_SM@px @SIDEBAR_SECTION_LABEL_INDENT@px;
+}
+
+#Sidebar QPushButton#menuItem {
+    background-color: transparent;
+    border: none;
+    border-radius: @CORNER_RADIUS_SM@px;
+    color: @SIDEBAR_TEXT@;
+    font-size: @SIDEBAR_MENU_FONT_SIZE@px;
+    padding: @SIDEBAR_MENU_PAD_V@px @SIDEBAR_MENU_PAD_H@px;
+    text-align: left;
+    outline: none;
+}
+
+#Sidebar QPushButton#menuItemWithIcon {
+    background-color: transparent;
+    border: none;
+    border-radius: @CORNER_RADIUS_SM@px;
+    color: @SIDEBAR_TEXT@;
+    font-size: @SIDEBAR_MENU_FONT_SIZE@px;
+    padding: 0;
+    min-height: @SIDEBAR_MENU_ITEM_HEIGHT@px;
+    text-align: left;
+    outline: none;
+}
+
+#Sidebar QPushButton#menuItem:focus {
+    background-color: @SIDEBAR_FOCUS_BG@;
+    color: @WHITE@;
+    border: none;
+    outline: none;
+}
+
+#Sidebar QPushButton#menuItem:hover {
+    background-color: rgba(26, 35, 103, 0.35);
+}
+
+#Sidebar QScrollArea#tagsScroll {
+    background: transparent;
+    border: none;
+}
+
+#Sidebar QScrollArea#tagsScroll > QWidget > QWidget {
+    background: transparent;
+}
+
+#Sidebar QScrollBar:vertical {
+    width: 0px;
+    background: transparent;
+}
+
+#Sidebar QScrollBar::handle:vertical,
+#Sidebar QScrollBar::add-line:vertical,
+#Sidebar QScrollBar::sub-line:vertical {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+    border: none;
+}

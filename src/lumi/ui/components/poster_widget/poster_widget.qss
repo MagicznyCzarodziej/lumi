@@ -1,0 +1,19 @@
+#PosterWidget {
+    background-color: @BACKGROUND@;
+    border: none;
+}
+
+#PosterWidget QLabel#placeholder {
+    color: @SIDEBAR_LABEL@;
+    font-size: @POSTER_PLACEHOLDER_FONT_SIZE@px;
+    padding: @POSTER_PLACEHOLDER_PADDING@px;
+    background: transparent;
+}
+
+#PosterWidget QLabel#placeholder[state="loading"] {
+    color: @TEXT_MUTED@;
+}
+
+#PosterWidget QLabel#placeholder[state="error"] {
+    color: @SIDEBAR_LABEL@;
+}

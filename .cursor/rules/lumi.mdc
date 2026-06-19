@@ -1,0 +1,43 @@
+---
+description: Lumi project conventions — Python/Qt desktop app
+alwaysApply: true
+---
+
+# Lumi
+
+Python 3.12+ desktop SMB video library browser.
+
+## Layer boundaries
+
+- `domain/` — zero imports from Qt or infrastructure
+- `infrastructure/` — implements domain interfaces only
+- `ui/` — depends on domain via `container.py`; never imports SMB directly
+- Long-running I/O off the UI thread; results via Qt signals
+
+## Rules
+
+- Library cache JSON must stay compatible with `mock_library.json` schema
+- Use `pathlib.PurePosixPath` for SMB share paths
+- SMB credentials from config/env only — never hardcode
+- **Never copy video files from SMB to disk** — playback uses smb:// streaming URIs only
+
+## UI styling
+
+- Colocated `.qss` per widget; design tokens in `ui/theme/`
+- Gradients and alpha blends in delegates/paint, not QSS
+- Only `global.qss` is centralized
+
+## After changes
+
+```bash
+uv run pytest
+uv run mypy src/lumi
+```
+
+Run domain tests after every domain/infrastructure change.
+
+After UI or other changes that affect the running app, restart it:
+
+```bash
+pkill -f "python.*-m lumi" 2>/dev/null || true; sleep 0.3; cd /Users/deko/dev/lumi && uv run python -m lumi
+```

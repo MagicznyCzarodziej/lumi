@@ -1,0 +1,23 @@
+QWidget {
+    background-color: @BACKGROUND@;
+    color: @TEXT_PRIMARY@;
+    font-family: @FONT_FAMILY@;
+    font-size: @FONT_SIZE_MD@px;
+}
+
+QScrollBar:vertical {
+    background: @SIDEBAR_BG@;
+    width: 8px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: @SIDEBAR_DIVIDER@;
+    min-height: 24px;
+    border-radius: 4px;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+}

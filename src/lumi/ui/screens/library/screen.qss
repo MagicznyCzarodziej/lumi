@@ -1,0 +1,9 @@
+#LibraryScreen {
+    background-color: @BACKGROUND@;
+}
+
+#LibraryScreen QLabel#emptyLabel {
+    color: @TEXT_MUTED@;
+    font-size: @FONT_SIZE_LG@px;
+    padding: @SPACE_XL@px;
+}

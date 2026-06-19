@@ -1,0 +1,24 @@
+mode: mock  # mock | smb
+
+library:
+  root_path: "/Movies"
+
+smb:
+  hostname: "192.168.1.100"
+  share_name: "media"
+  domain: "WORKGROUP"  # must match your NAS
+  username: "your-username"
+  password: ""  # prefer LUMI_SMB_PASSWORD env var
+
+cache:
+  library_json: ""  # empty = platform default cache dir
+  posters: ""
+
+player:
+  # {path} and {smb_uri} expand to an smb:// streaming URL (video is never copied locally)
+  command: ["mpv", "{path}"]
+
+extensions:
+  video: [".mkv", ".mp4", ".avi", ".mov", ".m4v", ".flv", ".ts", ".wmv", ".mpg", ".mpeg", ".vob"]
+  poster: [".jpg", ".jpeg", ".png", ".bmp"]
+  poster_file_name: "poster"

@@ -1,0 +1,43 @@
+#TopBar {
+    background-color: transparent;
+}
+
+#TopBar QLabel#searchIcon {
+    min-width: @ICON_SIZE@px;
+    max-width: @ICON_SIZE@px;
+    min-height: @ICON_SIZE@px;
+    max-height: @ICON_SIZE@px;
+}
+
+#TopBar QLineEdit#searchField {
+    background-color: transparent;
+    border: none;
+    color: @TEXT_PRIMARY@;
+    font-size: @FONT_SIZE_TOPBAR@px;
+    padding-left: @SPACE_SM@px;
+}
+
+#TopBar QLineEdit#searchField:disabled {
+    color: @TOPBAR_INACTIVE@;
+}
+
+#TopBar QLineEdit#searchField::placeholder {
+    color: @TOPBAR_INACTIVE@;
+}
+
+#TopBar QFrame#topBarDivider {
+    background-color: @TOPBAR_DIVIDER@;
+    max-width: 1px;
+    min-width: 1px;
+    max-height: @DIVIDER_HEIGHT@px;
+    min-height: @DIVIDER_HEIGHT@px;
+    margin: 0 @SPACE_SM@px;
+    border: none;
+}
+
+#TopBar QLabel#starIcon {
+    min-width: @ICON_SIZE@px;
+    max-width: @ICON_SIZE@px;
+    min-height: @ICON_SIZE@px;
+    max-height: @ICON_SIZE@px;
+}

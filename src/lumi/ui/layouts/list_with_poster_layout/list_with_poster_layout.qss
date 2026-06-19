@@ -1,0 +1,3 @@
+#ListWithPosterLayout {
+    background-color: @BACKGROUND@;
+}

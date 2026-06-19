@@ -1,0 +1,25 @@
+#Header {
+    background-color: transparent;
+}
+
+#Header QLabel#breadcrumbs,
+#Header QLabel#title,
+#Header QLabel#subtitle {
+    margin: 0;
+    padding: 0;
+}
+
+#Header QLabel#breadcrumbs {
+    color: @TEXT_MUTED@;
+    font-size: @FONT_SIZE_HEADER_BREADCRUMBS@px;
+}
+
+#Header QLabel#title {
+    color: @TEXT_PRIMARY@;
+    font-size: @FONT_SIZE_HEADER_TITLE@px;
+}
+
+#Header QLabel#subtitle {
+    color: @TEXT_PRIMARY@;
+    font-size: @FONT_SIZE_HEADER_SUBTITLE@px;
+}
