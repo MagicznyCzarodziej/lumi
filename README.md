@@ -27,6 +27,21 @@ LUMI_MODE=mock uv run python -m lumi
 uv run python -m lumi
 ```
 
+### Ubuntu desktop (no terminal)
+
+One-time setup in the project directory:
+
+```bash
+uv sync
+cp config.yaml.example config.yaml   # edit with your SMB settings
+chmod +x scripts/lumi-launch.sh scripts/install-desktop-entry.sh
+./scripts/install-desktop-entry.sh
+```
+
+Then open **Lumi** from the Ubuntu app menu. The launcher uses `.venv/bin/python` and `config.yaml` in this repo.
+
+To remove: `rm ~/.local/share/applications/lumi.desktop`
+
 ## Configuration
 
 Copy `config.yaml.example` to `config.yaml` (gitignored). Key settings:
