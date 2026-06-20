@@ -44,6 +44,7 @@ class Command(Enum):
     START_VOLUME_ADJUST = auto()
     STOP_VOLUME_ADJUST = auto()
     TOGGLE_MUTE = auto()
+    SEEK_TO_FRACTION = auto()
 
 
 _VOLUME_RELEASE_KEYS = frozenset({Qt.Key.Key_Plus, Qt.Key.Key_Minus, Qt.Key.Key_Equal})
@@ -102,6 +103,14 @@ class InputRouter:
             return RoutedCommand(Command.OPEN_TRACKS, track_kind=TrackKind.AUDIO)
 
         if has_media:
+            if (
+                key == Qt.Key.Key_0
+                and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+            ):
+                if event.isAutoRepeat():
+                    return None
+                return RoutedCommand(Command.SEEK_TO_FRACTION, fraction=0.0)
+
             if key == Qt.Key.Key_M:
                 return RoutedCommand(Command.TOGGLE_MUTE)
 

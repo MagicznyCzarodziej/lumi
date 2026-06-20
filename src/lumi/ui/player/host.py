@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QApplication, QWidget
@@ -22,7 +24,7 @@ class PlayerHost(QWidget):
         self._focus_before_play: QWidget | None = None
         self._video_area = VideoArea(on_close=self._request_close, parent=self)
 
-    def play(self, uri: str) -> None:
+    def play(self, uri: str, library_path: PurePosixPath) -> None:
         self._focus_before_play = QApplication.focusWidget()
         parent = self.parentWidget()
         self.setGeometry(parent.rect() if parent is not None else self.rect())
@@ -31,7 +33,7 @@ class PlayerHost(QWidget):
         self.raise_()
         self._video_area.mpv_widget.show()
         QApplication.processEvents()
-        self._video_area.play_file(uri)
+        self._video_area.play_file(uri, library_path)
         self.grabKeyboard()
         self.activateWindow()
         self.setFocus()

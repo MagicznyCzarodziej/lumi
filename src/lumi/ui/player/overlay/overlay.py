@@ -196,6 +196,8 @@ class PlayerOverlay(QWidget):
         if not scrub.is_scrubbing():
             self._state.time_pos = playback.time_pos
             scrub.time_pos = playback.time_pos
+            if playback.duration > 0:
+                scrub.scrub_fraction = playback.time_pos / playback.duration
         self._state.duration = playback.duration
         scrub.duration = playback.duration
         if not self._volume_baseline_set:
@@ -502,6 +504,15 @@ class PlayerOverlay(QWidget):
             if self._state.view != View.WATCHING:
                 self._keyboard_activity()
             self.update()
+        elif c == Command.SEEK_TO_FRACTION:
+            self._stop_key_scrub()
+            scrub = self._state.ensure_scrub()
+            scrub, seek, debounce = ScrubEngine.scrub_to_fraction(
+                scrub, cmd.fraction, immediate=True
+            )
+            self._apply_scrub_result(scrub, seek, debounce)
+            if self._state.view != View.WATCHING:
+                self._keyboard_activity()
         elif c == Command.KEYBOARD_ACTIVITY:
             self._keyboard_activity()
 

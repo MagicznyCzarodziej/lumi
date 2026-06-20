@@ -27,6 +27,6 @@ class EmbeddedVideoPlayer:
 
         logger.info("Playing (embedded): %s", absolute_path)
         try:
-            self._host.play(uri)
+            self._host.play(uri, absolute_path)
         except Exception as exc:
             raise VideoPlaybackError(f"Failed to start embedded player: {exc}") from exc

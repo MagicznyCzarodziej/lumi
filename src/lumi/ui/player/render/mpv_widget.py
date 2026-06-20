@@ -40,6 +40,7 @@ class MpvWidget(QOpenGLWidget):
         mpv = get_mpv()
         self._ctx = None
         self._pending_path: str | None = None
+        self._start_at: float | None = None
         self._proc_addr = mpv.MpvGlGetProcAddressFn(_get_proc_address)
         self.render_update.connect(self.update, Qt.ConnectionType.QueuedConnection)
         self.frameSwapped.connect(self._on_swap, Qt.ConnectionType.DirectConnection)
@@ -72,6 +73,10 @@ class MpvWidget(QOpenGLWidget):
     def _bind_mpv_events(self) -> None:
         @self.mpv.event_callback("file-loaded")
         def _on_file_loaded(_event) -> None:
+            start_at = self._start_at
+            self._start_at = None
+            if start_at is not None and start_at > 0:
+                self.mpv.time_pos = start_at
             self.mpv.pause = False
 
         @self.mpv.event_callback("end-file")
@@ -123,8 +128,9 @@ class MpvWidget(QOpenGLWidget):
         if self._ctx is not None:
             self._ctx.report_swap()
 
-    def play_file(self, path: str):
+    def play_file(self, path: str, *, start_at: float | None = None):
         self._pending_path = path
+        self._start_at = start_at
         if self._ctx is not None:
             self._flush_pending_load()
         else:

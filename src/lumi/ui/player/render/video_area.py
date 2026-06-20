@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import PurePosixPath
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication, QWidget
 
+from lumi.infrastructure.watch_progress import load_watch_position, save_watch_position
 from lumi.ui.player.controller.controller import MpvController
 from lumi.ui.player.overlay.input_router import is_dismiss_key
 from lumi.ui.player.overlay.overlay import PlayerOverlay
@@ -37,6 +39,7 @@ class VideoArea(QWidget):
             self.overlay.notify_repaint_tick,
             Qt.ConnectionType.QueuedConnection,
         )
+        self._library_path: PurePosixPath | None = None
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -46,21 +49,40 @@ class VideoArea(QWidget):
         if self.overlay.isVisible():
             self.overlay.raise_()
 
-    def play_file(self, path: str) -> None:
+    def play_file(self, path: str, library_path: PurePosixPath) -> None:
+        if self._library_path is not None:
+            self._persist_watch_progress()
+        self._library_path = library_path
+        start_at = load_watch_position(library_path)
         self.mpv_widget.show()
         self.mpv_widget.raise_()
-        self.mpv_widget.play_file(path)
+        self.mpv_widget.play_file(path, start_at=start_at)
         self.overlay.set_media_info(path)
         self.overlay.start_watching()
         QApplication.processEvents()
         self.setFocus()
 
     def stop(self) -> None:
+        self._persist_watch_progress()
+        self._library_path = None
         self.mpv_widget.stop()
 
     def shutdown(self) -> None:
+        self._persist_watch_progress()
+        self._library_path = None
         self.overlay.unbind()
         self.mpv_widget.shutdown()
+
+    def _persist_watch_progress(self) -> None:
+        library_path = self._library_path
+        if library_path is None:
+            return
+        duration = self.controller.duration()
+        save_watch_position(
+            library_path,
+            self.controller.time_pos(),
+            duration=duration if duration > 0 else None,
+        )
 
     def forward_key_event(self, event: QKeyEvent) -> None:
         if is_dismiss_key(event.key()) and self.overlay.close_if_watching():

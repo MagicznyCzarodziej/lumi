@@ -109,6 +109,30 @@ def test_watching_grave_accent_hides_ui(qapp) -> None:
     assert routed.command == Command.HIDE_UI
 
 
+def test_ctrl_zero_seeks_to_start(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(view=View.WATCHING)
+
+    routed = router.route_key(
+        _key(Qt.Key.Key_0, Qt.KeyboardModifier.ControlModifier),
+        state,
+        has_media=True,
+    )
+    assert routed is not None
+    assert routed.command == Command.SEEK_TO_FRACTION
+    assert routed.fraction == 0.0
+
+    assert router.route_key(_key(Qt.Key.Key_0), state, has_media=True).command == Command.SHOW_CONTROLS
+    assert (
+        router.route_key(
+            _key(Qt.Key.Key_0, Qt.KeyboardModifier.ControlModifier),
+            state,
+            has_media=False,
+        )
+        is None
+    )
+
+
 def test_scrub_left_continues_scrub(qapp) -> None:
     router = InputRouter()
     state = OverlayState(view=View.SCRUB)

@@ -45,3 +45,7 @@ def poster_cache_dir(settings: Settings) -> Path:
 
 def player_preferences_path() -> Path:
     return default_config_dir() / "player.json"
+
+
+def watch_progress_path() -> Path:
+    return default_config_dir() / "watch_progress.json"
