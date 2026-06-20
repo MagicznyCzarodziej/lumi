@@ -67,6 +67,7 @@ class EntriesList(QListWidget):
         )
         self._repeat_nav_clock = QElapsedTimer()
         self._repeat_nav_clock.start()
+        self._defer_poster_update = False
         self.currentRowChanged.connect(self._on_row_changed)
         self.itemActivated.connect(self._on_item_activated)
 
@@ -77,6 +78,7 @@ class EntriesList(QListWidget):
             focus_key = _entry_focus_key(self._models[self._focused_row])
 
         self._models = entries
+        self._defer_poster_update = False
         self.clear()
         for model in entries:
             item = QListWidgetItem()
@@ -100,9 +102,16 @@ class EntriesList(QListWidget):
     def focused_row(self) -> int:
         return self._focused_row
 
+    def consume_defer_poster_update(self) -> bool:
+        """True when the latest row change came from held-key auto-repeat."""
+        defer = self._defer_poster_update
+        self._defer_poster_update = False
+        return defer
+
     def scroll_to_row(self, row: int) -> None:
         if row < 0 or row >= self.count():
             return
+        self._defer_poster_update = False
         if self.currentRow() == row:
             self._scroll_to_row_offset(row)
         else:
@@ -159,6 +168,9 @@ class EntriesList(QListWidget):
                 return
             if event.isAutoRepeat():
                 self._repeat_nav_clock.restart()
+                self._defer_poster_update = True
+            else:
+                self._defer_poster_update = False
             if event.key() == Qt.Key.Key_Up:
                 if self.currentRow() <= 0:
                     self.focus_up_requested.emit()

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication
+
 from lumi.domain.library.models import Name
 from lumi.ui.components.entries_list import EntriesList, _ROWS_FROM_TOP
 from lumi.ui.components.list_entry import ListEntryType, ListEntryUiModel
@@ -44,3 +47,29 @@ def test_entries_list_keeps_focus_a_few_rows_from_top(qtbot) -> None:
     qtbot.wait(10)
     later_rect = entries.visualItemRect(entries.item(15))
     assert later_rect.top() == focus_rect.top()
+
+
+def test_single_step_navigation_does_not_defer_poster_update(qtbot) -> None:
+    QApplication.instance() or QApplication([])
+    entries = EntriesList()
+    qtbot.addWidget(entries)
+    entries.set_entries([_entry(f"Title {index}") for index in range(5)])
+    entries.show()
+    qtbot.waitExposed(entries)
+    entries.setFocus()
+    entries.setCurrentRow(0)
+
+    qtbot.keyClick(entries, Qt.Key.Key_Down)
+
+    assert entries.currentRow() == 1
+    assert not entries.consume_defer_poster_update()
+
+
+def test_consume_defer_poster_update_clears_flag(qtbot) -> None:
+    QApplication.instance() or QApplication([])
+    entries = EntriesList()
+    qtbot.addWidget(entries)
+
+    entries._defer_poster_update = True
+    assert entries.consume_defer_poster_update()
+    assert not entries.consume_defer_poster_update()

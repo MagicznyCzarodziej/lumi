@@ -86,7 +86,8 @@ class ListWithPosterLayout(QWidget):
             return
         model = item.data(Qt.ItemDataRole.UserRole)
         if isinstance(model, ListEntryUiModel) and model.poster_path is not None:
-            self._poster.set_poster_path(model.poster_path)
+            immediate = not self._entries.consume_defer_poster_update()
+            self._poster.set_poster_path(model.poster_path, immediate=immediate)
 
     @property
     def entries_list(self) -> EntriesList:

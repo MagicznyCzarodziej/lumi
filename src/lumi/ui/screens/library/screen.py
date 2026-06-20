@@ -251,7 +251,8 @@ class LibraryScreen(NavigableScreen):
         self._previous_alphabet_letter = letter
         if 0 <= row < len(self._ui_state.entries):
             model = self._ui_state.entries[row]
-            self._layout.poster.set_poster_path(model.poster_path)
+            immediate = not self._layout.entries.consume_defer_poster_update()
+            self._layout.poster.set_poster_path(model.poster_path, immediate=immediate)
 
     def _on_letter_activated(self, letter: str) -> None:
         index = find_entry_index_for_letter(self._ui_state.entries, letter)
