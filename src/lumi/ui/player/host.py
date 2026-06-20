@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QKeyEvent
+from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QApplication, QWidget
 from shiboken6 import isValid
 
@@ -68,6 +68,16 @@ class PlayerHost(QWidget):
         self._video_area.setGeometry(self.rect())
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if event.matches(QKeySequence.StandardKey.Quit):
+            parent = self.parentWidget()
+            if parent is not None:
+                parent.close()
+            else:
+                app = QApplication.instance()
+                if app is not None:
+                    app.quit()
+            event.accept()
+            return
         self._video_area.forward_key_event(event)
         event.accept()
 

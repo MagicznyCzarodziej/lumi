@@ -103,6 +103,12 @@ class MainWindow(QMainWindow):
         )
 
     def _register_actions(self) -> None:
+        quit_action = QAction("Quit", self)
+        quit_action.setShortcut(QKeySequence.StandardKey.Quit)
+        quit_action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
+        quit_action.triggered.connect(self.close)
+        self.addAction(quit_action)
+
         rebuild_action = QAction("Rebuild library", self)
         rebuild_action.setShortcut(QKeySequence("Ctrl+Shift+R"))
         rebuild_action.triggered.connect(self._rebuild_library)
