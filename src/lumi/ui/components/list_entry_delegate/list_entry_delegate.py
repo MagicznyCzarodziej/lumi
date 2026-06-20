@@ -34,22 +34,22 @@ def _alt_font() -> QFont:
     return font
 
 
-def _line_paint_height(metrics: QFontMetrics) -> int:
-    """One line of text — ascent+descent plus a little room for descenders/AA."""
-    return metrics.ascent() + metrics.descent() + max(2, metrics.leading() // 2 + 1)
+_DESCENDER_PAD = 2
+
+
+def _single_line_height(metrics: QFontMetrics, text: str) -> int:
+    return metrics.boundingRect(text).height() + _DESCENDER_PAD
 
 
 def _wrapped_text_height(text: str, font: QFont, width: int) -> int:
     if not text:
         return 0
     metrics = QFontMetrics(font)
-    line_height = _line_paint_height(metrics)
-    if width <= 0:
-        return line_height
-    bounds = metrics.boundingRect(0, 0, width, 10_000, int(_TEXT_FLAGS), text)
-    if metrics.horizontalAdvance(text) <= width:
-        return line_height
-    return max(line_height, bounds.height() + max(2, metrics.descent() // 3))
+    constraint = max(1, width)
+    if metrics.horizontalAdvance(text) <= constraint:
+        return _single_line_height(metrics, text)
+    bounds = metrics.boundingRect(0, 0, constraint, 10_000, int(_TEXT_FLAGS), text)
+    return bounds.height() + _DESCENDER_PAD
 
 
 def _draw_wrapped_text(
@@ -148,8 +148,6 @@ class ListEntryDelegate(QStyledItemDelegate):
         left, top, right, bottom = self._content_margins
         width = option.rect.width() if option.rect.width() > 0 else 800
         inner_width = max(1, width - left - right)
-        if isinstance(model, ListEntryUiModel) and option.state & QStyle.StateFlag.State_HasFocus:
-            inner_width = max(1, inner_width - _icon_block_width(model))
 
         title_metrics = QFontMetrics(_title_font())
         height = top + bottom + title_metrics.height()
