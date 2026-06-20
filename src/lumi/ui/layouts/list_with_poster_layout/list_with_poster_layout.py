@@ -98,7 +98,7 @@ class ListWithPosterLayout(QWidget):
 
     def apply_state(self, state: ListWithPosterViewState | None) -> None:
         if state is None or state.is_loading:
-            self._poster.set_poster_path(None)
+            self._poster.set_poster_path(None, immediate=True)
             self._header.set_content(breadcrumbs="", title="", tags=frozenset())
             self._entries.set_entries([])
             self._poster_skeleton.start()
@@ -109,7 +109,7 @@ class ListWithPosterLayout(QWidget):
         self._poster_skeleton.stop()
         self._entries_skeleton.stop()
 
-        self._poster.set_poster_path(state.poster_path)
+        self._poster.set_poster_path(state.poster_path, immediate=True)
         self._header.set_content(
             breadcrumbs=state.breadcrumbs,
             title=state.title,

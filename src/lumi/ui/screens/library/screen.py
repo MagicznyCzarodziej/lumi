@@ -86,7 +86,7 @@ class LibraryScreen(NavigableScreen):
         self._layout.entries.set_entries([])
         self._layout.empty_label.hide()
         self._layout.entries.show()
-        self._layout.poster.set_poster_path(None)
+        self._layout.poster.set_poster_path(None, immediate=True)
         self._layout.poster_skeleton.start()
         self._layout.entries_skeleton.start()
         self._layout.sync_skeleton_geometry()
@@ -127,7 +127,7 @@ class LibraryScreen(NavigableScreen):
         self._layout.entries.hide()
         self._layout.empty_label.setText(message)
         self._layout.empty_label.show()
-        self._layout.poster.set_poster_path(None)
+        self._layout.poster.set_poster_path(None, immediate=True)
 
     def set_loading_progress(self, completed: int, total: int, directory_name: str) -> None:
         self._layout.top_bar.set_loading_progress((completed, total, directory_name))
@@ -151,9 +151,6 @@ class LibraryScreen(NavigableScreen):
         if self._context is None:
             return
 
-        def on_entry_focus(entry: LibraryEntry) -> None:
-            self._layout.poster.set_poster_path(entry.root_relative_poster_path)
-
         self._ui_state = build_library_ui_state(
             self._all_entries,
             entries_filter=self._entries_filter,
@@ -161,7 +158,6 @@ class LibraryScreen(NavigableScreen):
             search_query=self._search_query,
             router=self._router,
             video_player=self._context.video_player,
-            on_entry_focus=on_entry_focus,
             is_loading=is_loading,
         )
         self._apply_ui_state()
@@ -192,7 +188,7 @@ class LibraryScreen(NavigableScreen):
             focus_row = min(row, len(self._ui_state.entries) - 1)
             self._layout.entries.scroll_to_row(focus_row)
             model = self._ui_state.entries[focus_row]
-            self._layout.poster.set_poster_path(model.poster_path)
+            self._layout.poster.set_poster_path(model.poster_path, immediate=True)
         else:
             if self._search_query.strip():
                 self._layout.empty_label.setText("No entries match your search.")
@@ -205,7 +201,7 @@ class LibraryScreen(NavigableScreen):
                 else:
                     self._layout.empty_label.setText("Library is empty.")
                 self._layout.empty_label.show()
-            self._layout.poster.set_poster_path(None)
+            self._layout.poster.set_poster_path(None, immediate=True)
 
         if self._layout.sidebar.is_open():
             QTimer.singleShot(0, self._layout.sidebar.restore_menu_focus)

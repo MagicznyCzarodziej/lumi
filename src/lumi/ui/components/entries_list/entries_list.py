@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QElapsedTimer, Qt, Signal
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QAbstractItemView, QListWidget, QListWidgetItem, QWidget
 
@@ -20,6 +20,7 @@ from lumi.ui.theme.spacing import (
 from lumi.ui.theme.styles import apply_widget_stylesheet
 
 _ROWS_FROM_TOP = LIST_ROWS_FROM_TOP
+_REPEAT_NAV_INTERVAL_MS = 50
 
 
 class EntriesList(QListWidget):
@@ -64,6 +65,8 @@ class EntriesList(QListWidget):
             self.verticalScrollBar(),
             parent=self.viewport(),
         )
+        self._repeat_nav_clock = QElapsedTimer()
+        self._repeat_nav_clock.start()
         self.currentRowChanged.connect(self._on_row_changed)
         self.itemActivated.connect(self._on_item_activated)
 
@@ -150,9 +153,17 @@ class EntriesList(QListWidget):
             self.focus_right_requested.emit()
             event.accept()
             return
-        if event.key() == Qt.Key.Key_Up:
-            if self.currentRow() <= 0:
-                self.focus_up_requested.emit()
+        if event.key() in (Qt.Key.Key_Up, Qt.Key.Key_Down):
+            if event.isAutoRepeat() and self._repeat_nav_clock.elapsed() < _REPEAT_NAV_INTERVAL_MS:
+                event.accept()
+                return
+            if event.isAutoRepeat():
+                self._repeat_nav_clock.restart()
+            if event.key() == Qt.Key.Key_Up:
+                if self.currentRow() <= 0:
+                    self.focus_up_requested.emit()
+                else:
+                    super().keyPressEvent(event)
             else:
                 super().keyPressEvent(event)
             event.accept()
@@ -174,8 +185,6 @@ class EntriesList(QListWidget):
             return
         self._focused_row = row
         self._scroll_to_row_offset(row)
-        if 0 <= row < len(self._models):
-            self._models[row].on_focus()
         self._sync_fade_overlay()
 
     def _on_item_activated(self, item: QListWidgetItem) -> None:

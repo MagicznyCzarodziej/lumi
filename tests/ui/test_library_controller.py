@@ -79,15 +79,12 @@ def test_build_library_ui_state_filters_by_search() -> None:
     context = ScreenContext(container.library_repository, MockVideoPlayer())
     stack = QStackedWidget()
     router = Router(stack, context)
-    focused: list[PurePosixPath | None] = []
-
     state = build_library_ui_state(
         container.library_repository.get_top_level_entries(),
         entries_filter=EntriesFilter.ALL,
         tag_filter=None,
         router=router,
         video_player=context.video_player,
-        on_entry_focus=lambda entry: focused.append(entry.root_relative_poster_path),
     )
 
     assert state.entries
@@ -104,7 +101,6 @@ def test_build_library_ui_state_filters_by_search() -> None:
         search_query="alien",
         router=router,
         video_player=context.video_player,
-        on_entry_focus=lambda entry: None,
     )
     assert filtered.entries
     assert all("alien" in model.name.name.lower() for model in filtered.entries)

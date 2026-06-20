@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -106,7 +105,6 @@ def build_library_ui_state(
     search_query: str = "",
     router: Router,
     video_player: VideoPlayer,
-    on_entry_focus: Callable[[LibraryEntry], None],
     is_loading: bool = False,
 ) -> LibraryUiState:
     if is_loading:
@@ -122,7 +120,7 @@ def build_library_ui_state(
     ]
 
     ui_entries = [
-        _to_list_entry(entry, router, video_player, on_entry_focus)
+        _to_list_entry(entry, router, video_player)
         for entry in filtered
     ]
     return LibraryUiState(entries=ui_entries, tags=tags, is_loading=False)
@@ -165,18 +163,13 @@ def _to_list_entry(
     entry: LibraryEntry,
     router: Router,
     video_player: VideoPlayer,
-    on_entry_focus: Callable[[LibraryEntry], None],
 ) -> ListEntryUiModel:
     def on_click() -> None:
         on_library_entry_clicked(entry, router, video_player)
-
-    def on_focus() -> None:
-        on_entry_focus(entry)
 
     return ListEntryUiModel(
         name=entry.name,
         entry_type=library_entry_type(entry),
         poster_path=entry.root_relative_poster_path,
         on_click=on_click,
-        on_focus=on_focus,
     )

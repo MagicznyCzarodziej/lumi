@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from pathlib import PurePosixPath
 
+import base64
+
+from PySide6.QtGui import QImage
+
 from lumi.domain.poster.image_file_poster_provider import ImageFilePosterProvider, is_placeholder_poster_path
 from lumi.infrastructure.poster_cache.disk_poster_cache import DiskPosterCache
 from lumi.ui.workers.poster_load_worker import PosterLoadWorker
+
+TINY_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
 
 
 class _FakePosterProvider(ImageFilePosterProvider):
@@ -31,14 +39,16 @@ def test_is_missing_poster_path() -> None:
 def test_poster_load_worker_uses_disk_cache(tmp_path) -> None:
     cache = DiskPosterCache(tmp_path)
     path = PurePosixPath("Alien")
-    cache.write(path, b"cached")
+    cache.write(path, TINY_PNG)
 
     worker = PosterLoadWorker(path, _FakePosterProvider(b"network"), cache)
-    received: list[tuple[PurePosixPath, bytes]] = []
-    worker.signals.finished.connect(lambda p, d: received.append((p, d)))
+    received: list[tuple[PurePosixPath, QImage]] = []
+    worker.signals.finished.connect(lambda p, image: received.append((p, image)))
     worker.run()
 
-    assert received == [(path, b"cached")]
+    assert len(received) == 1
+    assert received[0][0] == path
+    assert not received[0][1].isNull()
 
 
 def test_poster_load_worker_fetches_and_caches(tmp_path) -> None:
