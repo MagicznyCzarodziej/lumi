@@ -14,11 +14,12 @@ cache:
   library_json: ""  # empty = platform default cache dir
   posters: ""
 
-player:
-  # {path} and {smb_uri} expand to an smb:// streaming URL (video is never copied locally)
-  command: ["mpv", "{path}"]
-
 extensions:
   video: [".mkv", ".mp4", ".avi", ".mov", ".m4v", ".flv", ".ts", ".wmv", ".mpg", ".mpeg", ".vob"]
   poster: [".jpg", ".jpeg", ".png", ".bmp"]
+  subtitle: [".srt", ".ass", ".ssa", ".vtt", ".sub", ".txt"]
   poster_file_name: "poster"
+
+napiprojekt:
+  enabled: true
+  language: ENG

@@ -92,7 +92,7 @@ def paint_cross_controls(
     m = layout.metrics
 
     for key, rect in layout.hit_regions.items():
-        if key in {"seek", "subs", "audio"}:
+        if key in {"seek", "subs", "audio", "video"}:
             continue
         on_focus = key == state.cross_focus and state.focus_zone == FocusZone.CONTROLS
         strength = press_strength if key == press_key else 0.0
@@ -131,6 +131,7 @@ def paint_corner_hints(
     *,
     subtitle_name: str,
     audio_name: str,
+    video_name: str,
 ) -> None:
     m = layout.metrics
     label_font = ui_font(m.font_sm, bold=True)
@@ -144,10 +145,13 @@ def paint_corner_hints(
     text_group_h = label_line_h + name_gap + track_line_h
 
     for hit_key, letter, label, track_name in (
+        ("video", "V", "Video", video_name),
         ("subs", "S", "Subs", subtitle_name),
         ("audio", "A", "Audio", audio_name),
     ):
-        badge = layout.hit_regions[hit_key]
+        badge = layout.hit_regions.get(hit_key)
+        if badge is None:
+            continue
         painter.setPen(QPen(QColor.fromRgbF(1, 1, 1, 0.5), 1))
         painter.setBrush(QColor.fromRgbF(0.08, 0.12, 0.22, 0.2))
         painter.drawRoundedRect(badge, m.radius_sm, m.radius_sm)

@@ -13,8 +13,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from lumi.config.extensions import (
     DEFAULT_POSTER_EXTENSIONS,
     DEFAULT_POSTER_FILE_NAME,
+    DEFAULT_SUBTITLE_EXTENSIONS,
     DEFAULT_VIDEO_EXTENSIONS,
 )
+from lumi.domain.subtitles.napi_language import DEFAULT_NAPI_LANGUAGE, normalize_napi_language
 
 
 class LibrarySettings(BaseModel):
@@ -54,11 +56,6 @@ class CacheSettings(BaseModel):
             return ""
         return str(value)
 
-
-class PlayerSettings(BaseModel):
-    command: list[str] = Field(default_factory=lambda: ["mpv", "{path}"])
-
-
 class WindowSettings(BaseModel):
     fullscreen: bool = False
     screen_index: int = 0
@@ -75,12 +72,25 @@ class WindowSettings(BaseModel):
         return int(str(value))
 
 
+class NapiProjektSettings(BaseModel):
+    enabled: bool = True
+    language: str = DEFAULT_NAPI_LANGUAGE
+
+    @field_validator("language", mode="before")
+    @classmethod
+    def _coerce_language(cls, value: object) -> str:
+        if value is None:
+            return DEFAULT_NAPI_LANGUAGE
+        return normalize_napi_language(str(value))
+
+
 class ExtensionSettings(BaseModel):
     video: list[str] = Field(default_factory=lambda: sorted(DEFAULT_VIDEO_EXTENSIONS))
     poster: list[str] = Field(default_factory=lambda: sorted(DEFAULT_POSTER_EXTENSIONS))
+    subtitle: list[str] = Field(default_factory=lambda: sorted(DEFAULT_SUBTITLE_EXTENSIONS))
     poster_file_name: str = DEFAULT_POSTER_FILE_NAME
 
-    @field_validator("video", "poster", mode="before")
+    @field_validator("video", "poster", "subtitle", mode="before")
     @classmethod
     def _ensure_dot_prefix(cls, value: list[str]) -> list[str]:
         return [ext if ext.startswith(".") else f".{ext}" for ext in value]
@@ -105,9 +115,9 @@ class Settings(BaseSettings):
     library: LibrarySettings = Field(default_factory=LibrarySettings)
     smb: SmbSettings = Field(default_factory=SmbSettings)
     cache: CacheSettings = Field(default_factory=CacheSettings)
-    player: PlayerSettings = Field(default_factory=PlayerSettings)
     window: WindowSettings = Field(default_factory=WindowSettings)
     extensions: ExtensionSettings = Field(default_factory=ExtensionSettings)
+    napiprojekt: NapiProjektSettings = Field(default_factory=NapiProjektSettings)
 
     @model_validator(mode="before")
     @classmethod
@@ -131,8 +141,6 @@ class Settings(BaseSettings):
             normalized.setdefault("cache", {})["library_json"] = normalized.pop("cache_library_json")
         if "cache_posters" in normalized:
             normalized.setdefault("cache", {})["posters"] = normalized.pop("cache_posters")
-        if "player_command" in normalized:
-            normalized.setdefault("player", {})["command"] = normalized.pop("player_command")
         if "video_extensions" in normalized:
             normalized.setdefault("extensions", {})["video"] = normalized.pop("video_extensions")
         if "poster_extensions" in normalized:
@@ -174,16 +182,16 @@ class Settings(BaseSettings):
         return self.cache.posters
 
     @property
-    def player_command(self) -> list[str]:
-        return self.player.command
-
-    @property
     def video_extensions(self) -> list[str]:
         return self.extensions.video
 
     @property
     def poster_extensions(self) -> list[str]:
         return self.extensions.poster
+
+    @property
+    def subtitle_extensions(self) -> list[str]:
+        return self.extensions.subtitle
 
     @property
     def poster_file_name(self) -> str:

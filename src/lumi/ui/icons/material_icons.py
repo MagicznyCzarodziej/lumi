@@ -33,6 +33,15 @@ _REFRESH = (
     "c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6"
     "c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
 )
+_SAVE = (
+    "M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3"
+    " 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+)
+_DELETE = "M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+_ADD = "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
+_REMOVE = "M19 13H5v-2h14v2z"
+_CHEVRON_LEFT = "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
+_CHEVRON_RIGHT = "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
 _ANIMATION_PLAY = (
     "M4,2a2,2 0,0 0,-2 2v10h2L4,4h10L14,2zM8,6a2,2 0,0 0,-2 2v10h2L8,8h10L18,6z"
     "M20,12v8h-8v-8zM20,10h-8a2,2 0,0 0,-2 2v8a2,2 0,0 0,2 2h8a2,2 0,0 0,2 -2v-8a2,2 0,0 0,-2 -2m-6,3v6l4,-3z"
@@ -48,6 +57,12 @@ class IconKind(Enum):
     SERIES = auto()
     FOLDER = auto()
     PLAYABLES = auto()
+    SAVE = auto()
+    DELETE = auto()
+    ADD = auto()
+    REMOVE = auto()
+    CHEVRON_LEFT = auto()
+    CHEVRON_RIGHT = auto()
 
 
 _SVG_PATHS: dict[IconKind, str] = {
@@ -59,6 +74,12 @@ _SVG_PATHS: dict[IconKind, str] = {
     IconKind.FOLDER: _FOLDER_COPY,
     IconKind.PLAYABLES: _ANIMATION_PLAY,
     IconKind.SELL: _SELL_OUTLINE,
+    IconKind.SAVE: _SAVE,
+    IconKind.DELETE: _DELETE,
+    IconKind.ADD: _ADD,
+    IconKind.REMOVE: _REMOVE,
+    IconKind.CHEVRON_LEFT: _CHEVRON_LEFT,
+    IconKind.CHEVRON_RIGHT: _CHEVRON_RIGHT,
 }
 
 

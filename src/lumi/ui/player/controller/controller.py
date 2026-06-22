@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import PurePosixPath
 
 from PySide6.QtCore import QTimer
 
+from lumi.domain.subtitles.delay import SUB_DELAY_STEP_SECONDS
+from lumi.domain.subtitles.content_hash import subtitle_content_hash
+from lumi.domain.video_aspect import (
+    VIDEO_ASPECT_MODES,
+    VideoAspectMode,
+    video_aspect_override_value,
+)
 from lumi.infrastructure.player_preferences import save_player_volume
 from lumi.ui.player.controller.events import PlaybackSignals, PlaybackState
 from lumi.ui.player.controller.track_labels import audio_track_label, subtitle_track_label
@@ -33,6 +41,11 @@ class MpvController:
         self._bound = False
         self._emit_scheduled = False
         self._time_pos_emit_pending = False
+        self._subtitle_display_names: dict[int, str] = {}
+        self._subtitle_content_hashes: dict[int, str] = {}
+        self._subtitle_share_paths: dict[int, PurePosixPath] = {}
+        self._napi_track_ids: set[int] = set()
+        self._video_aspect_mode = VideoAspectMode.AUTO
         self._state = PlaybackState(
             has_media=False,
             paused=True,
@@ -199,7 +212,70 @@ class MpvController:
         self._bound = False
 
     def notify_media_loaded(self):
+        self._subtitle_display_names.clear()
+        self._subtitle_content_hashes.clear()
+        self._subtitle_share_paths.clear()
+        self._napi_track_ids.clear()
+        self.set_sub_delay(0.0)
         self._refresh_state()
+
+    def video_aspect_mode(self) -> VideoAspectMode:
+        return self._video_aspect_mode
+
+    def video_aspect_mode_index(self) -> int:
+        try:
+            return VIDEO_ASPECT_MODES.index(self._video_aspect_mode)
+        except ValueError:
+            return 0
+
+    def set_video_aspect_mode(self, mode: VideoAspectMode) -> None:
+        self._video_aspect_mode = mode
+        self._apply_video_aspect_mode(mode)
+
+    def _apply_video_aspect_mode(self, mode: VideoAspectMode) -> None:
+        player = self._mpv()
+        if player is None:
+            return
+        if mode == VideoAspectMode.FILL:
+            self._safe(lambda: setattr(player, "keepaspect", False))
+            self._safe(lambda: setattr(player, "video_aspect_override", -1))
+            return
+        self._safe(lambda: setattr(player, "keepaspect", True))
+        override = video_aspect_override_value(mode)
+        if override is None:
+            self._safe(lambda: setattr(player, "video_aspect_override", -1))
+        else:
+            value = override
+            self._safe(lambda: setattr(player, "video_aspect_override", value))
+
+    def subtitle_share_path(self, track_id: int | None) -> PurePosixPath | None:
+        if track_id is None:
+            return None
+        return self._subtitle_share_paths.get(track_id)
+
+    def remember_subtitle_share_path(self, track_id: int, path: PurePosixPath) -> None:
+        self._subtitle_share_paths[track_id] = path
+
+    def sub_delay(self) -> float:
+        player = self._mpv()
+        if player is None:
+            return 0.0
+        val = self._safe(lambda: player.sub_delay, 0.0)
+        return float(val if val is not None else 0.0)
+
+    def set_sub_delay(self, seconds: float) -> None:
+        player = self._mpv()
+        if player is None:
+            return
+        self._safe(lambda: setattr(player, "sub_delay", float(seconds)))
+
+    def adjust_sub_delay(self, *, steps: int = 1) -> float:
+        new_value = self.sub_delay() + SUB_DELAY_STEP_SECONDS * steps
+        self.set_sub_delay(new_value)
+        return new_value
+
+    def napi_track_ids(self) -> frozenset[int]:
+        return frozenset(self._napi_track_ids)
 
     def has_media(self) -> bool:
         player = self._mpv()
@@ -328,7 +404,10 @@ class MpvController:
             if track.get("type") != "sub":
                 continue
             tid = track.get("id")
-            rows.append((tid, subtitle_track_label(track)))
+            if not isinstance(tid, int):
+                continue
+            display_name = self._subtitle_display_names.get(tid)
+            rows.append((tid, subtitle_track_label(track, display_name=display_name)))
         return rows or [(None, "Off")]
 
     def current_subtitle_label(self) -> str:
@@ -403,3 +482,103 @@ class MpvController:
                 player.aid = track_id
         except (AttributeError, get_mpv().ShutdownError):
             pass
+
+    def remember_subtitle_content_hash(self, track_id: int, data: bytes) -> None:
+        self._subtitle_content_hashes[track_id] = subtitle_content_hash(data)
+
+    def find_subtitle_track_for_content(
+        self,
+        data: bytes,
+        *,
+        read_uri: Callable[[str], bytes | None] | None = None,
+    ) -> int | None:
+        target = subtitle_content_hash(data)
+        for track in self._tracks():
+            if track.get("type") != "sub":
+                continue
+            track_id = track.get("id")
+            if not isinstance(track_id, int):
+                continue
+            known = self._subtitle_content_hashes.get(track_id)
+            if known is None:
+                known = self._hash_external_subtitle_track(track, read_uri=read_uri)
+            if known == target:
+                return track_id
+        return None
+
+    def _hash_external_subtitle_track(
+        self,
+        track: dict,
+        *,
+        read_uri: Callable[[str], bytes | None] | None,
+    ) -> str | None:
+        external = track.get("external-filename") or track.get("external_filename")
+        if not external or read_uri is None:
+            return None
+        payload = read_uri(str(external))
+        if payload is None:
+            return None
+        content_hash = subtitle_content_hash(payload)
+        track_id = track.get("id")
+        if isinstance(track_id, int):
+            self._subtitle_content_hashes[track_id] = content_hash
+        return content_hash
+
+    def add_subtitle(
+        self,
+        uri: str,
+        *,
+        display_name: str | None = None,
+        share_path: PurePosixPath | None = None,
+    ) -> int | None:
+        player = self._mpv()
+        if player is None:
+            return None
+        try:
+            result = player.command("sub-add", uri)
+            track_id: int | None
+            if isinstance(result, int):
+                track_id = result
+            else:
+                sid = self.current_sid()
+                track_id = int(sid) if sid is not None else None
+            if track_id is not None:
+                if display_name:
+                    self._subtitle_display_names[track_id] = display_name
+                if share_path is not None:
+                    self._subtitle_share_paths[track_id] = share_path
+            return track_id
+        except (AttributeError, get_mpv().ShutdownError, OSError, ValueError):
+            return None
+
+    def mark_napi_track(self, track_id: int) -> None:
+        self._napi_track_ids.add(track_id)
+
+    def is_napi_track(self, track_id: int) -> bool:
+        return track_id in self._napi_track_ids
+
+    def remove_subtitle(self, track_id: int) -> None:
+        player = self._mpv()
+        if player is None:
+            return
+        try:
+            player.command("sub-remove", track_id)
+        except (AttributeError, get_mpv().ShutdownError, OSError, ValueError):
+            pass
+        self._subtitle_display_names.pop(track_id, None)
+        self._subtitle_content_hashes.pop(track_id, None)
+        self._subtitle_share_paths.pop(track_id, None)
+        self._napi_track_ids.discard(track_id)
+        self._schedule_emit()
+
+    def loaded_external_subtitle_filenames(self) -> set[str]:
+        names: set[str] = set()
+        for track in self._tracks():
+            if track.get("type") != "sub":
+                continue
+            external = track.get("external-filename") or track.get("external_filename")
+            if not external:
+                continue
+            text = str(external).replace("\\", "/")
+            names.add(text.rsplit("/", 1)[-1].lower())
+        return names

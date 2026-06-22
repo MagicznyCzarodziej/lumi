@@ -44,6 +44,17 @@ def test_playback_uri_uses_localhost_stream() -> None:
         server.shutdown()
 
 
+def test_resolve_stream_uri_encodes_filename() -> None:
+    repo = MagicMock()
+    repo.file_size.return_value = 12345
+    server = SmbHttpStreamServer(repo)
+    try:
+        uri = server.resolve_stream_uri(PurePosixPath("/Movies/Back to the Future.mkv"))
+        assert "Back%20to%20the%20Future.mkv" in uri
+    finally:
+        server.shutdown()
+
+
 def test_playback_uri_missing_file_raises() -> None:
     repo = MagicMock()
     server = SmbHttpStreamServer(repo)

@@ -12,7 +12,7 @@ SPACE_XL = s(32)
 POSTER_LAYOUT_STRETCH = 37
 LIST_LAYOUT_STRETCH = 63
 
-# Normalized poster crop size (matches original Luminark coil request).
+# Normalized poster crop size
 POSTER_REFERENCE_WIDTH = 720
 POSTER_REFERENCE_HEIGHT = 1080
 

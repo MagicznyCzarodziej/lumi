@@ -162,7 +162,10 @@ class AlphabetColumn(QWidget):
             self._move_focus(1)
             event.accept()
             return
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+        if event.key() == Qt.Key.Key_Space:
+            event.accept()
+            return
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             if 0 <= self._focused_index < len(self._symbols):
                 self.letter_activated.emit(self._symbols[self._focused_index])
             event.accept()

@@ -13,6 +13,7 @@ from lumi.infrastructure.smb.playback_paths import (
     directory_path_candidates,
     playback_path_candidates,
     resolve_playback_file,
+    resolve_share_file,
 )
 
 
@@ -66,6 +67,45 @@ def test_resolve_playback_file_falls_back_to_directory_scan() -> None:
         {"mp4"},
     )
     assert resolved == MOCK_LIBRARY_ROOT / "12 Angry Men/12 Angry Men.mp4"
+
+
+def test_resolve_share_file_does_not_fall_back_to_video() -> None:
+    repo = MagicMock()
+    repo.file_size.return_value = None
+    repo.list_files_and_directories.return_value = [
+        DirectoryEntry(
+            name="12 Angry Men.mp4",
+            absolute_path=MOCK_LIBRARY_ROOT / "12 Angry Men/12 Angry Men.mp4",
+            is_directory=False,
+            is_file=True,
+        )
+    ]
+
+    with pytest.raises(FileNotFoundError):
+        resolve_share_file(
+            repo,
+            MOCK_LIBRARY_ROOT / "12 Angry Men/12 Angry Men.srt",
+            MOCK_LIBRARY_ROOT,
+        )
+
+
+def test_resolve_share_file_returns_existing_subtitle() -> None:
+    repo = MagicMock()
+    subtitle_path = MOCK_LIBRARY_ROOT / "12 Angry Men/12 Angry Men.srt"
+
+    def file_size(path: PurePosixPath) -> int | None:
+        if path == subtitle_path:
+            return 42
+        return None
+
+    repo.file_size.side_effect = file_size
+
+    resolved = resolve_share_file(
+        repo,
+        PurePosixPath("/12 Angry Men/12 Angry Men.srt"),
+        MOCK_LIBRARY_ROOT,
+    )
+    assert resolved == subtitle_path
 
 
 def test_resolve_playback_file_raises_when_unresolved() -> None:

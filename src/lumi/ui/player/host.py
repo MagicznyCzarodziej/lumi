@@ -9,6 +9,15 @@ from PySide6.QtGui import QKeyEvent, QKeySequence
 from PySide6.QtWidgets import QApplication, QWidget
 from shiboken6 import isValid
 
+from lumi.domain.filesystem.file_repository import FileRepository
+from lumi.domain.filesystem.file_writer import FileWriter
+from lumi.domain.filesystem.files_lister import FilesLister
+from lumi.domain.filesystem.video_range_reader import VideoRangeReader
+from lumi.domain.playback import PlaybackUriResolver
+from lumi.domain.power.sleep_inhibitor import SleepInhibitor
+from lumi.domain.subtitles.cache import SubtitleCache
+from lumi.domain.subtitles.provider import SubtitleDownloadProvider
+from lumi.domain.subtitles.saved_state import NapiSavedStateStore
 from lumi.ui.player.render.video_area import VideoArea
 
 
@@ -17,14 +26,55 @@ class PlayerHost(QWidget):
 
     close_requested = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        files_lister: FilesLister | None = None,
+        playback_uri_resolver: PlaybackUriResolver | None = None,
+        library_root: PurePosixPath | None = None,
+        video_extensions: set[str] | None = None,
+        subtitle_extensions: set[str] | None = None,
+        subtitle_cache: SubtitleCache | None = None,
+        napi_provider: SubtitleDownloadProvider | None = None,
+        napi_saved_state: NapiSavedStateStore | None = None,
+        video_reader: VideoRangeReader | None = None,
+        file_repository: FileRepository | None = None,
+        file_writer: FileWriter | None = None,
+        napi_enabled: bool = False,
+        napi_language: str = "ENG",
+        sleep_inhibitor: SleepInhibitor | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setVisible(False)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._focus_before_play: QWidget | None = None
-        self._video_area = VideoArea(on_close=self._request_close, parent=self)
+        self._sleep_inhibitor = sleep_inhibitor
+        self._video_area = VideoArea(
+            on_close=self._request_close,
+            files_lister=files_lister,
+            playback_uri_resolver=playback_uri_resolver,
+            library_root=library_root,
+            video_extensions=video_extensions,
+            subtitle_extensions=subtitle_extensions,
+            subtitle_cache=subtitle_cache,
+            napi_provider=napi_provider,
+            napi_saved_state=napi_saved_state,
+            video_reader=video_reader,
+            file_repository=file_repository,
+            file_writer=file_writer,
+            napi_enabled=napi_enabled,
+            napi_language=napi_language,
+            parent=self,
+        )
 
-    def play(self, uri: str, library_path: PurePosixPath) -> None:
+    def play(
+        self,
+        uri: str,
+        library_path: PurePosixPath,
+        *,
+        resolved_video_path: PurePosixPath | None = None,
+    ) -> None:
         self._focus_before_play = QApplication.focusWidget()
         parent = self.parentWidget()
         self.setGeometry(parent.rect() if parent is not None else self.rect())
@@ -33,7 +83,9 @@ class PlayerHost(QWidget):
         self.raise_()
         self._video_area.mpv_widget.show()
         QApplication.processEvents()
-        self._video_area.play_file(uri, library_path)
+        self._video_area.play_file(uri, library_path, resolved_video_path=resolved_video_path)
+        if self._sleep_inhibitor is not None:
+            self._sleep_inhibitor.acquire()
         self.grabKeyboard()
         self.activateWindow()
         self.setFocus()
@@ -43,6 +95,8 @@ class PlayerHost(QWidget):
         saved_focus = self._focus_before_play
         self._focus_before_play = None
         self.releaseKeyboard()
+        if self._sleep_inhibitor is not None:
+            self._sleep_inhibitor.release()
         self._video_area.stop()
         self.hide()
         QTimer.singleShot(0, lambda: self._restore_focus(saved_focus))
@@ -56,6 +110,8 @@ class PlayerHost(QWidget):
             parent.restore_screen_focus()
 
     def shutdown(self) -> None:
+        if self._sleep_inhibitor is not None:
+            self._sleep_inhibitor.release()
         self._video_area.shutdown()
 
     def is_playing(self) -> bool:

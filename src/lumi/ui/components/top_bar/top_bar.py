@@ -204,7 +204,7 @@ class TopBar(QWidget):
         key = key_event.key()
         index = self._button_order.index(watched)
 
-        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             watched.clicked.emit()
             return True
         if key == Qt.Key.Key_Down:

@@ -180,7 +180,7 @@ class EntriesList(QListWidget):
                 super().keyPressEvent(event)
             event.accept()
             return
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             row = self.currentRow()
             item = self.item(row) if row >= 0 else None
             if item is not None:

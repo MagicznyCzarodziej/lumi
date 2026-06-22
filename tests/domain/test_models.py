@@ -8,7 +8,8 @@ from pathlib import Path
 import pytest
 
 from lumi.domain.library.models import Name, StandaloneFilm, compute_sort_name
-from lumi.domain.library.serialization import library_from_json, library_to_json
+from lumi.domain.library.serialization.to_json import library_to_json
+from lumi.domain.library.serialization.from_json import library_from_json
 
 FIXTURE_PATH = (
     Path(__file__).resolve().parents[2]

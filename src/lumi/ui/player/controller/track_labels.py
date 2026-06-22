@@ -16,6 +16,9 @@ _LANG_ALIASES: dict[str, str] = {
     "us": "en",
 }
 
+# Subtitle extensions mpv sometimes puts in the title field for external tracks.
+_SUBTITLE_EXTENSIONS = frozenset({"ass", "ssa", "srt", "sub", "txt", "vtt"})
+
 # When QLocale cannot resolve a code.
 _FALLBACK_NAMES: dict[str, str] = {
     "en": "English",
@@ -50,7 +53,20 @@ _FALLBACK_NAMES: dict[str, str] = {
 
 def _is_lang_code(value: str) -> bool:
     value = value.strip().lower()
+    if value in _SUBTITLE_EXTENSIONS:
+        return False
     return 2 <= len(value) <= 3 and value.isalpha()
+
+
+def external_subtitle_basename(track: dict) -> str:
+    external = track.get("external-filename") or track.get("external_filename")
+    if not external:
+        return ""
+    text = str(external).replace("\\", "/")
+    name = text.rsplit("/", 1)[-1]
+    if "?" in name:
+        name = name.split("?", 1)[0]
+    return name
 
 
 def language_display_name(code: str | None) -> str:
@@ -91,10 +107,17 @@ def _with_qualifiers(base: str, track: dict) -> str:
     return f"{base} ({', '.join(tags)})"
 
 
-def subtitle_track_label(track: dict) -> str:
+def subtitle_track_label(track: dict, *, display_name: str | None = None) -> str:
     title = str(track.get("title") or "").strip()
     lang = str(track.get("lang") or "").strip()
     tid = track.get("id")
+
+    if display_name:
+        return _with_qualifiers(display_name, track)
+
+    filename = external_subtitle_basename(track)
+    if filename:
+        return _with_qualifiers(filename, track)
 
     if title and not _is_lang_code(title):
         return _with_qualifiers(title, track)

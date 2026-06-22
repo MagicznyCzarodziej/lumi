@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
+from urllib.parse import quote
 
 if TYPE_CHECKING:
     from lumi.infrastructure.smb.smb_file_repository import SmbFileRepository
@@ -73,7 +74,7 @@ class SmbHttpStreamServer:
         with self._lock:
             self._streams[token] = entry
             self._ensure_running()
-        filename = absolute_path.name.replace("/", "_")
+        filename = quote(absolute_path.name.replace("/", "_"), safe="")
         return f"http://127.0.0.1:{self._port}/stream/{token}/{filename}"
 
     def shutdown(self) -> None:

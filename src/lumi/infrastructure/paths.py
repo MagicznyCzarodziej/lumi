@@ -43,9 +43,25 @@ def poster_cache_dir(settings: Settings) -> Path:
     return default_cache_dir() / "posters"
 
 
+def subtitle_cache_dir(settings: Settings) -> Path:
+    return default_cache_dir() / "subtitles"
+
+
 def player_preferences_path() -> Path:
     return default_config_dir() / "player.json"
 
 
 def watch_progress_path() -> Path:
     return default_config_dir() / "watch_progress.json"
+
+
+def track_selection_path() -> Path:
+    return default_config_dir() / "track_selection.json"
+
+
+def napi_saved_state_path() -> Path:
+    return default_config_dir() / "napi_saved_state.json"
+
+
+def video_aspect_path() -> Path:
+    return default_config_dir() / "video_aspect.json"

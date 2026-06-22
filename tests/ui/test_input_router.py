@@ -8,7 +8,7 @@ from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication
 
 from lumi.ui.player.overlay.input_router import Command, InputRouter
-from lumi.ui.player.overlay.state import OverlayState, View
+from lumi.ui.player.overlay.state import OverlayState, TrackRow, View, move_track_action_focus
 
 
 @pytest.fixture(scope="session")
@@ -140,3 +140,121 @@ def test_scrub_left_continues_scrub(qapp) -> None:
     assert routed is not None
     assert routed.command == Command.START_KEY_SCRUB
     assert routed.delta == -1
+
+
+def test_tracks_right_moves_to_save_action(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(
+        view=View.TRACKS,
+        track_focus=1,
+        track_rows=[
+            TrackRow(label="Off", mpv_id=0),
+            TrackRow(label="NapiProjekt (ENG)", mpv_id=1, show_napi_save=True, show_napi_delete=True),
+        ],
+    )
+    routed = router.route_key(_key(Qt.Key.Key_Right), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.MOVE_TRACK_ACTION_FOCUS
+    assert routed.delta == 1
+
+
+def test_tracks_right_on_save_moves_to_delete(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(
+        view=View.TRACKS,
+        track_focus=0,
+        track_action_focus="save",
+        track_rows=[
+            TrackRow(label="NapiProjekt (ENG)", mpv_id=1, show_napi_save=True, show_napi_delete=True),
+        ],
+    )
+    routed = router.route_key(_key(Qt.Key.Key_Right), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.MOVE_TRACK_ACTION_FOCUS
+    assert routed.delta == 1
+
+
+def test_tracks_left_from_save_returns_to_row(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(
+        view=View.TRACKS,
+        track_focus=0,
+        track_action_focus="save",
+        track_rows=[
+            TrackRow(label="NapiProjekt (ENG)", mpv_id=1, show_napi_save=True, show_napi_delete=True),
+        ],
+    )
+    next_state = move_track_action_focus(state, -1)
+    assert next_state.track_action_focus is None
+
+
+def test_tracks_enter_on_action_activates(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(
+        view=View.TRACKS,
+        track_focus=0,
+        track_action_focus="delete",
+        track_rows=[
+            TrackRow(label="NapiProjekt (ENG)", mpv_id=1, show_napi_save=True, show_napi_delete=True),
+        ],
+    )
+    routed = router.route_key(_key(Qt.Key.Key_Return), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.ACTIVATE_TRACK_ACTION
+
+
+def test_tracks_left_on_delay_row_adjusts(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(
+        view=View.TRACKS,
+        track_focus=1,
+        track_rows=[
+            TrackRow(label="English", mpv_id=1),
+            TrackRow(label="Delay", is_action=True, is_sub_delay_control=True),
+        ],
+    )
+    routed = router.route_key(_key(Qt.Key.Key_Left), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.ADJUST_SUB_DELAY
+    assert routed.delta == -1
+
+
+def test_tracks_right_on_delay_row_adjusts(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(
+        view=View.TRACKS,
+        track_focus=1,
+        track_rows=[
+            TrackRow(label="English", mpv_id=1),
+            TrackRow(label="Delay", is_action=True, is_sub_delay_control=True),
+        ],
+    )
+    routed = router.route_key(_key(Qt.Key.Key_Right), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.ADJUST_SUB_DELAY
+    assert routed.delta == 1
+
+
+def test_v_opens_video_drawer(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(view=View.CONTROLS)
+    routed = router.route_key(_key(Qt.Key.Key_V), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.OPEN_VIDEO
+
+
+def test_v_closes_video_drawer(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(view=View.VIDEO)
+    routed = router.route_key(_key(Qt.Key.Key_V), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.CLOSE_VIDEO
+
+
+def test_video_drawer_selects_aspect(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(view=View.VIDEO, video_focus=2)
+    routed = router.route_key(_key(Qt.Key.Key_Return), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.SELECT_VIDEO_ASPECT
+    assert routed.video_aspect_index == 2

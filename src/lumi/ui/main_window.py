@@ -62,8 +62,29 @@ class MainWindow(QMainWindow):
         else:
             from lumi.ui.embedded_video_player import EmbeddedVideoPlayer
             from lumi.ui.player.host import PlayerHost
+            from lumi.infrastructure.power import create_sleep_inhibitor
 
-            self._player_host = PlayerHost(self)
+            self._player_host = PlayerHost(
+                self,
+                files_lister=container.files_lister,
+                playback_uri_resolver=container.playback_uri_resolver,
+                library_root=PurePosixPath(settings.library_root),
+                video_extensions={
+                    ext.lstrip(".").lower() for ext in settings.video_extensions
+                },
+                subtitle_extensions={
+                    ext.lstrip(".").lower() for ext in settings.subtitle_extensions
+                },
+                subtitle_cache=container.subtitle_cache,
+                napi_provider=container.napi_provider,
+                napi_saved_state=container.napi_saved_state,
+                video_reader=container.smb_file_repository,
+                file_repository=container.file_repository,
+                file_writer=container.smb_file_repository,
+                napi_enabled=settings.napiprojekt.enabled,
+                napi_language=settings.napiprojekt.language,
+                sleep_inhibitor=create_sleep_inhibitor(),
+            )
             self._player_host.hide()
             playback = EmbeddedVideoPlayer(container.playback_uri_resolver, self._player_host)
         self._screen_context = ScreenContext(

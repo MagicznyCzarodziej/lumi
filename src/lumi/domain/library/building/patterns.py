@@ -36,12 +36,13 @@ class ReadableRegexPattern:
             return RegexMatch(self._search.search(text))
         return RegexMatch(self._exact.fullmatch(text))
 
-
+# Gets number from `[1]` at the start of the line
 ORDINAL_NUMBER_PATTERN = ReadableRegexPattern(
     _exact=re.compile(r"^\[\d+\]\s$"),
     _search=re.compile(r"^\[(?P<number>\d+)\]\s*"),
 )
 
+# `Season 1` or `S1` or `1` (allows trailing zeros and any digits count. Case-insensitive)
 SEASON_NUMBER_PATTERN = ReadableRegexPattern(
     _exact=re.compile(
         r"^(?:Season\s+(?P<g1>\d+)|S(?P<g2>\d+)|(?P<g3>\d+))$",
@@ -53,6 +54,7 @@ SEASON_NUMBER_PATTERN = ReadableRegexPattern(
     ),
 )
 
+# Example: `Series title - S01E01 - Episode title.mkv`
 EPISODE_FILE_PATTERN = ReadableRegexPattern(
     _exact=re.compile(
         r"^.*?\s+-\s+S(?P<seasonNumber>\d{2})E(?P<episodeNumber>\d{2})(?:\s+.*)?\.\w+$",
@@ -60,6 +62,9 @@ EPISODE_FILE_PATTERN = ReadableRegexPattern(
     ),
 )
 
+# Input: `Some (example)`
+#   mainName: `Some`
+#   alternativeName: `example`
 NAME_WITH_ALTERNATIVE_NAME_PATTERN = ReadableRegexPattern(
     _exact=re.compile(r"^(?P<mainName>.*?)\s*\((?P<alternativeName>.*?)\)\s*$"),
 )

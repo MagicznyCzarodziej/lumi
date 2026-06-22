@@ -8,6 +8,8 @@ dependencies = [
     "PySide6>=6.8",
     "PyYAML>=6.0",
     "pydantic-settings>=2.0",
+    "py7zr>=0.22",
+    "chardet>=5.0",
     "smbprotocol>=1.14",
     "mpv>=1.0.0",
 ]
@@ -46,4 +48,12 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "mpv.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "py7zr.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "chardet.*"
 ignore_missing_imports = true

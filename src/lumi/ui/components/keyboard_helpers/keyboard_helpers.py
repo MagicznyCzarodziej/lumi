@@ -27,12 +27,14 @@ _MODIFIER_MASK = (
 
 
 def search_character(event: QKeyEvent) -> str | None:
-    """Return typed a–z/A–Z for unmodified keys, else None."""
+    """Return typed a–z/A–Z, 0–9, or space for unmodified keys, else None."""
     if event.modifiers() & _MODIFIER_MASK:
         return None
     text = event.text()
-    if len(text) == 1 and text.isalpha():
+    if len(text) == 1 and (text.isalpha() or text.isdigit() or text == " "):
         return text
+    if event.key() == Qt.Key.Key_Space:
+        return " "
     return None
 
 

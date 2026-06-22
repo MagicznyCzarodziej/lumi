@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import PurePosixPath
 
-from lumi.infrastructure.smb.playback_paths import resolve_playback_file
+from lumi.infrastructure.smb.playback_paths import playback_path_candidates, resolve_playback_file, resolve_share_file
 from lumi.infrastructure.smb.smb_file_repository import SmbFileRepository
 from lumi.infrastructure.smb.smb_stream_server import SmbHttpStreamServer
 
@@ -29,7 +29,28 @@ class SmbPlaybackUriResolver:
             self._library_root,
             self._video_extensions,
         )
-        return self._stream_server.resolve_stream_uri(resolved)
+        return self.stream_uri(resolved)
+
+    def resolve_path(self, hint_path: PurePosixPath) -> PurePosixPath:
+        return resolve_playback_file(
+            self._smb_file_repository,
+            hint_path,
+            self._library_root,
+            self._video_extensions,
+        )
+
+    def resolve_share_file(self, hint_path: PurePosixPath) -> PurePosixPath:
+        return resolve_share_file(
+            self._smb_file_repository,
+            hint_path,
+            self._library_root,
+        )
+
+    def stream_uri(self, absolute_path: PurePosixPath) -> str:
+        for candidate in playback_path_candidates(absolute_path, self._library_root):
+            if self._smb_file_repository.file_size(candidate) is not None:
+                return self._stream_server.resolve_stream_uri(candidate)
+        raise FileNotFoundError(f"SMB file not found: {absolute_path}")
 
     def shutdown(self) -> None:
         self._stream_server.shutdown()

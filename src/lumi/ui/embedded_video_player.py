@@ -21,12 +21,13 @@ class EmbeddedVideoPlayer:
 
     def play_video(self, absolute_path: PurePosixPath) -> None:
         try:
-            uri = self._playback_uri_resolver.playback_uri(absolute_path)
+            resolved = self._playback_uri_resolver.resolve_path(absolute_path)
+            uri = self._playback_uri_resolver.stream_uri(resolved)
         except Exception as exc:
             raise VideoPlaybackError(f"Could not resolve playback URI: {exc}") from exc
 
         logger.info("Playing (embedded): %s", absolute_path)
         try:
-            self._host.play(uri, absolute_path)
+            self._host.play(uri, absolute_path, resolved_video_path=resolved)
         except Exception as exc:
             raise VideoPlaybackError(f"Failed to start embedded player: {exc}") from exc

@@ -37,6 +37,27 @@ def test_entries_list_letter_emits_type_to_search() -> None:
     assert received == ["a"]
 
 
+def test_entries_list_digit_emits_type_to_search() -> None:
+    QApplication.instance() or QApplication([])
+    entries = EntriesList()
+    received: list[str] = []
+    entries.type_to_search.connect(received.append)
+    entries.set_entries(
+        [
+            ListEntryUiModel(
+                name=Name(name="2001"),
+                entry_type=ListEntryType.single(),
+                on_click=lambda: None,
+                on_focus=lambda: None,
+            )
+        ]
+    )
+
+    QApplication.sendEvent(entries, _key(Qt.Key.Key_2, "2"))
+
+    assert received == ["2"]
+
+
 def test_alphabet_letter_jumps_without_activating() -> None:
     QApplication.instance() or QApplication([])
     column = AlphabetColumn()

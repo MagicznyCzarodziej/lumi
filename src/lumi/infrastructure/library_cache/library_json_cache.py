@@ -7,7 +7,8 @@ from pathlib import Path
 
 from lumi.domain.library.library_cache import LibraryCache
 from lumi.domain.library.models import Library
-from lumi.domain.library.serialization import library_from_json, library_to_json
+from lumi.domain.library.serialization.to_json import library_to_json
+from lumi.domain.library.serialization.from_json import library_from_json
 
 logger = logging.getLogger(__name__)
 

@@ -147,7 +147,7 @@ def test_parse_directory_with_no_matching_strategy_returns_none() -> None:
 
 
 def test_mock_library_json_entry_count_matches_fixture() -> None:
-    from lumi.domain.library.serialization import library_from_json
+    from lumi.domain.library.serialization.from_json import library_from_json
     from lumi.infrastructure.mock.mock_library_builder import DEFAULT_FIXTURE_PATH
 
     text = DEFAULT_FIXTURE_PATH.read_text(encoding="utf-8")

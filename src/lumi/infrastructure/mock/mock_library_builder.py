@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath
 
 from lumi.domain.library.build_progress import LibraryBuildProgress, LibraryProgressCallback
 from lumi.domain.library.models import Library
-from lumi.domain.library.serialization import library_from_json
+from lumi.domain.library.serialization.from_json import library_from_json
 
 logger = logging.getLogger(__name__)
 

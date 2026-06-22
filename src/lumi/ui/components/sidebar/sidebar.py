@@ -372,7 +372,7 @@ class Sidebar(QFrame):
 
         index = items.index(watched)
         key = key_event.key()
-        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             watched.click()
             return True
         if key == Qt.Key.Key_Down and index < len(items) - 1:

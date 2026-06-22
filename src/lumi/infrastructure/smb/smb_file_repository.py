@@ -105,6 +105,13 @@ class SmbFileRepository(FilesLister, FileRepository):
             absolute_path,
         )
 
+    def write_file_bytes(self, absolute_path: PurePosixPath, data: bytes) -> bool:
+        result = self._with_smb_retry(
+            lambda session: _write_file(session.tree(), absolute_path, data),
+            absolute_path,
+        )
+        return result is True
+
     def disconnect(self) -> None:
         with self._sessions_lock:
             sessions = list(self._sessions)
@@ -305,6 +312,30 @@ def _read_file_range(tree: TreeConnect, absolute_path: PurePosixPath, offset: in
             if len(chunk) < to_read:
                 break
         return b"".join(chunks)
+    finally:
+        file_handle.close()
+
+
+def _write_file(tree: TreeConnect, absolute_path: PurePosixPath, data: bytes) -> bool:
+    open_path = share_relative_path(absolute_path)
+    file_handle = Open(tree, open_path)
+    file_handle.create(
+        ImpersonationLevel.Impersonation,
+        FilePipePrinterAccessMask.FILE_WRITE_DATA
+        | FilePipePrinterAccessMask.FILE_WRITE_ATTRIBUTES
+        | FilePipePrinterAccessMask.FILE_WRITE_EA,
+        FileAttributes.FILE_ATTRIBUTE_NORMAL,
+        _FILE_SHARE,
+        CreateDisposition.FILE_OVERWRITE_IF,
+        CreateOptions.FILE_NON_DIRECTORY_FILE,
+    )
+    try:
+        offset = 0
+        while offset < len(data):
+            chunk = data[offset : offset + _READ_CHUNK_SIZE]
+            file_handle.write(chunk, offset)
+            offset += len(chunk)
+        return True
     finally:
         file_handle.close()
 

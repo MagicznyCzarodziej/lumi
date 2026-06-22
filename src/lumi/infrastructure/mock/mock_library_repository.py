@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from lumi.domain.library.build_progress import LibraryProgressCallback
 from lumi.domain.library.library_repository import LibraryRepository
 from lumi.domain.library.models import LibraryEntry
-from lumi.domain.library.serialization import library_from_json
+from lumi.domain.library.serialization.from_json import library_from_json
 from lumi.domain.utils.library_sort import sort_library_entries
 
 logger = logging.getLogger(__name__)
