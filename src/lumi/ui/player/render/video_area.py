@@ -19,6 +19,7 @@ from lumi.domain.subtitles.provider import SubtitleDownloadProvider
 from lumi.domain.subtitles.saved_state import NapiSavedStateStore
 from lumi.infrastructure.watch_progress import load_watch_position, save_watch_position
 from lumi.ui.player.controller.controller import MpvController
+from lumi.ui.player.overlay.deps import OverlayDeps
 from lumi.ui.player.overlay.input_router import is_dismiss_key
 from lumi.ui.player.overlay.overlay import PlayerOverlay
 from lumi.ui.player.render.mpv_widget import MpvWidget
@@ -55,20 +56,22 @@ class VideoArea(QWidget):
         self.controller = MpvController(lambda: self.mpv_widget.mpv)
         self.overlay = PlayerOverlay(
             self.controller,
-            files_lister=files_lister,
-            playback_uri_resolver=playback_uri_resolver,
-            library_root=library_root,
-            video_extensions=video_extensions,
-            subtitle_extensions=subtitle_extensions,
-            subtitle_cache=subtitle_cache,
-            napi_provider=napi_provider,
-            napi_saved_state=napi_saved_state,
-            video_reader=video_reader,
-            file_repository=file_repository,
-            file_writer=file_writer,
-            napi_enabled=napi_enabled,
-            napi_language=napi_language,
-            on_close=on_close,
+            OverlayDeps(
+                files_lister=files_lister,
+                playback_uri_resolver=playback_uri_resolver,
+                library_root=library_root,
+                video_extensions=frozenset(video_extensions or ()),
+                subtitle_extensions=frozenset(subtitle_extensions or ()),
+                subtitle_cache=subtitle_cache,
+                napi_provider=napi_provider,
+                napi_saved_state=napi_saved_state,
+                video_reader=video_reader,
+                file_repository=file_repository,
+                file_writer=file_writer,
+                napi_enabled=napi_enabled,
+                napi_language=napi_language,
+                on_close=on_close,
+            ),
             parent=self,
         )
         self.overlay.raise_()
