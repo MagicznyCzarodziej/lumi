@@ -44,6 +44,7 @@ class ListEntryUiModel:
     name: Name
     entry_type: ListEntryType
     poster_path: PurePosixPath | None = None
+    playback_path: PurePosixPath | None = None
     on_click: Callable[[], None] = field(default=lambda: None, repr=False)
     on_focus: Callable[[], None] = field(default=lambda: None, repr=False)
 

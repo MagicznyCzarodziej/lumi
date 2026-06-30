@@ -30,7 +30,18 @@ class FocusZone(str, Enum):
     TIMELINE = "timeline"
 
 
-CROSS_ORDER = ("m1", "m10", "center", "p10", "p1")
+CORE_CROSS_ORDER = ("m1", "m10", "center", "p10", "p1")
+CROSS_ORDER = CORE_CROSS_ORDER
+
+
+def cross_order(*, prev_ep: bool = False, next_ep: bool = False) -> tuple[str, ...]:
+    order: list[str] = []
+    if prev_ep:
+        order.append("prev_ep")
+    order.extend(CORE_CROSS_ORDER)
+    if next_ep:
+        order.append("next_ep")
+    return tuple(order)
 
 
 @dataclass(frozen=True)
@@ -134,6 +145,8 @@ class OverlayState:
     video_focus: int = 0
     panel_w: int = 340
     panel_scroll_y: int = 0
+    prev_ep_available: bool = False
+    next_ep_available: bool = False
 
     def ensure_scrub(self) -> ScrubState:
         if self.scrub is None:
@@ -142,12 +155,13 @@ class OverlayState:
 
 
 def move_cross_focus(state: OverlayState, delta: int) -> OverlayState:
+    order = cross_order(prev_ep=state.prev_ep_available, next_ep=state.next_ep_available)
     try:
-        idx = CROSS_ORDER.index(state.cross_focus)
+        idx = order.index(state.cross_focus)
     except ValueError:
-        idx = 2
-    idx = max(0, min(len(CROSS_ORDER) - 1, idx + delta))
-    return replace(state, cross_focus=CROSS_ORDER[idx], focus_zone=FocusZone.CONTROLS)
+        idx = order.index("center")
+    idx = max(0, min(len(order) - 1, idx + delta))
+    return replace(state, cross_focus=order[idx], focus_zone=FocusZone.CONTROLS)
 
 
 def toggle_focus_zone(state: OverlayState) -> OverlayState:

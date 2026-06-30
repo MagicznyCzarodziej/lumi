@@ -10,6 +10,7 @@ from lumi.domain.filesystem.file_repository import FileRepository
 from lumi.domain.filesystem.file_writer import FileWriter
 from lumi.domain.filesystem.files_lister import FilesLister
 from lumi.domain.filesystem.video_range_reader import VideoRangeReader
+from lumi.domain.library.library_repository import LibraryRepository
 from lumi.domain.playback import PlaybackUriResolver
 from lumi.domain.subtitles.cache import SubtitleCache
 from lumi.domain.subtitles.provider import SubtitleDownloadProvider
@@ -32,6 +33,8 @@ class OverlayDeps:
     napi_enabled: bool = False
     napi_language: str = "ENG"
     on_close: Callable[[], None] | None = None
+    library_repository: LibraryRepository | None = None
+    on_play_path: Callable[[PurePosixPath], None] | None = None
 
     @property
     def napi_available(self) -> bool:

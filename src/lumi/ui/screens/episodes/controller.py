@@ -37,6 +37,7 @@ def build_episodes_state(
                 name=episode.name,
                 entry_type=ListEntryType.single(),
                 poster_path=episodes_group.root_relative_poster_path,
+                playback_path=episode.root_relative_path,
                 on_click=play_video(video_player, episode.root_relative_path),
             )
             for episode in episodes_group.episodes

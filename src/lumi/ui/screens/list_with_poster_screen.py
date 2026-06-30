@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QVBoxLayout
 
@@ -29,3 +31,9 @@ class ListWithPosterScreen(NavigableScreen):
         entries = self._layout.entries_list
         entries.scroll_to_row(entries.focused_row())
         entries.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def focus_playback_path(self, path: PurePosixPath) -> bool:
+        if not self._layout.entries_list.focus_playback_path(path):
+            return False
+        self.focus_default()
+        return True

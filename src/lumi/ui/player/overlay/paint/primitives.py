@@ -196,3 +196,27 @@ def paint_play_icon(painter: QPainter, rect: QRect, playing: bool, on_focus: boo
             ]
         )
         painter.drawPolygon(tri)
+
+
+def paint_episode_skip_icon(
+    painter: QPainter,
+    rect: QRect,
+    *,
+    forward: bool,
+    on_focus: bool,
+) -> None:
+    """Previous/next episode — sized to match play/pause glyph scale."""
+    from lumi.ui.icons.material_icons import (
+        EPISODE_ADVANCE_ASPECT,
+        IconKind,
+        paint_icon,
+    )
+
+    color = TEXT_DARK if on_focus else TEXT_LIGHT
+    kind = IconKind.EPISODE_NEXT if forward else IconKind.EPISODE_PREVIOUS
+    size = min(rect.width(), rect.height())
+    icon_h = size * 0.38
+    icon_w = icon_h * EPISODE_ADVANCE_ASPECT
+    cx, cy = rect.center().x(), rect.center().y()
+    inner = QRect(int(cx - icon_w / 2), int(cy - icon_h / 2), int(icon_w), int(icon_h))
+    paint_icon(painter, inner, kind, color)

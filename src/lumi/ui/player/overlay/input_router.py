@@ -12,7 +12,7 @@ from PySide6.QtGui import QKeyEvent, QMouseEvent
 
 from lumi.ui.components.keyboard_helpers import is_back_key
 from lumi.ui.player.overlay.state import (
-    CROSS_ORDER,
+    CORE_CROSS_ORDER,
     FocusZone,
     OverlayState,
     TrackKind,
@@ -348,7 +348,7 @@ class InputRouter:
         if seek is not None and seek.contains(pos) and state.view in (View.CONTROLS, View.SCRUB):
             return RoutedCommand(Command.START_MOUSE_SCRUB, pos=pos)
 
-        for key in ("m1", "m10", "center", "p10", "p1", "video", "subs", "audio"):
+        for key in ("prev_ep", "m1", "m10", "center", "p10", "p1", "next_ep", "video", "subs", "audio"):
             region = hit_regions.get(key)
             if region is not None and region.contains(pos):
                 return RoutedCommand(Command.HIT, hit_key=key)
@@ -385,4 +385,4 @@ class InputRouter:
 
     @staticmethod
     def cross_hit_keys() -> tuple[str, ...]:
-        return CROSS_ORDER
+        return CORE_CROSS_ORDER

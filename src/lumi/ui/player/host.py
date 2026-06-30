@@ -13,6 +13,7 @@ from lumi.domain.filesystem.file_repository import FileRepository
 from lumi.domain.filesystem.file_writer import FileWriter
 from lumi.domain.filesystem.files_lister import FilesLister
 from lumi.domain.filesystem.video_range_reader import VideoRangeReader
+from lumi.domain.library.library_repository import LibraryRepository
 from lumi.domain.playback import PlaybackUriResolver
 from lumi.domain.power.sleep_inhibitor import SleepInhibitor
 from lumi.domain.subtitles.cache import SubtitleCache
@@ -44,6 +45,7 @@ class PlayerHost(QWidget):
         napi_enabled: bool = False,
         napi_language: str = "ENG",
         sleep_inhibitor: SleepInhibitor | None = None,
+        library_repository: LibraryRepository | None = None,
     ) -> None:
         super().__init__(parent)
         self.setVisible(False)
@@ -65,6 +67,7 @@ class PlayerHost(QWidget):
             file_writer=file_writer,
             napi_enabled=napi_enabled,
             napi_language=napi_language,
+            library_repository=library_repository,
             parent=self,
         )
 
@@ -92,6 +95,7 @@ class PlayerHost(QWidget):
         self._video_area.setFocus()
 
     def close_player(self) -> None:
+        library_path = self._video_area.current_library_path
         saved_focus = self._focus_before_play
         self._focus_before_play = None
         self.releaseKeyboard()
@@ -99,13 +103,24 @@ class PlayerHost(QWidget):
             self._sleep_inhibitor.release()
         self._video_area.stop()
         self.hide()
-        QTimer.singleShot(0, lambda: self._restore_focus(saved_focus))
+        QTimer.singleShot(0, lambda: self._restore_focus(saved_focus, library_path))
 
-    def _restore_focus(self, saved_focus: QWidget | None) -> None:
+    def _restore_focus(
+        self,
+        saved_focus: QWidget | None,
+        library_path: PurePosixPath | None = None,
+    ) -> None:
+        parent = self.parentWidget()
+        if (
+            library_path is not None
+            and parent is not None
+            and hasattr(parent, "focus_playback_path")
+            and parent.focus_playback_path(library_path)
+        ):
+            return
         if saved_focus is not None and isValid(saved_focus) and saved_focus.isVisible():
             saved_focus.setFocus(Qt.FocusReason.OtherFocusReason)
             return
-        parent = self.parentWidget()
         if parent is not None and hasattr(parent, "restore_screen_focus"):
             parent.restore_screen_focus()
 

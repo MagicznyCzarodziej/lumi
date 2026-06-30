@@ -26,6 +26,8 @@ def compute_layout(
     browse_path: PurePosixPath | None = None,
     browse_rows: list[BrowseRow] | None = None,
     panel_scroll_y: int = 0,
+    prev_ep: bool = False,
+    next_ep: bool = False,
 ) -> LayoutSnapshot:
     """Build a layout snapshot for the current overlay view and widget size.
 
@@ -48,7 +50,13 @@ def compute_layout(
 
     if view in (View.CONTROLS, View.SCRUB):
         cross, hints, seek_inner, elapsed_rect, total_rect, time_font_size = (
-            layout_controls_geometry(w, h, metrics)
+            layout_controls_geometry(
+                w,
+                h,
+                metrics,
+                prev_ep=prev_ep and view == View.CONTROLS,
+                next_ep=next_ep and view == View.CONTROLS,
+            )
         )
         if view == View.CONTROLS:
             # SCRUB view shows only the timeline — no cross or corner hints.

@@ -10,7 +10,12 @@ from PySide6.QtWidgets import QWidget
 from lumi.domain.video_aspect import video_aspect_label
 from lumi.ui.player.overlay.input_router import Command
 from lumi.ui.player.overlay.paint.browse import paint_browse_sheet
-from lumi.ui.player.overlay.paint.controls import paint_corner_hints, paint_cross_controls, paint_timeline
+from lumi.ui.player.overlay.paint.controls import (
+    paint_corner_hints,
+    paint_cross_controls,
+    paint_episode_title,
+    paint_timeline,
+)
 from lumi.ui.player.overlay.paint.tracks import paint_track_sheet
 from lumi.ui.player.overlay.paint.video import paint_video_sheet
 from lumi.ui.player.overlay.paint.volume import paint_volume
@@ -138,6 +143,12 @@ class OverlayEvents:
             painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
             if self._rt.state.view == View.CONTROLS:
+                paint_episode_title(
+                    painter,
+                    self._rt.layout,
+                    title=self._rt.episode_title,
+                    viewport_w=w,
+                )
                 paint_cross_controls(
                     painter,
                     self._rt.state,
@@ -156,6 +167,12 @@ class OverlayEvents:
                 if self._rt.state.volume_flash:
                     paint_volume(painter, w, h, self._rt.state.volume, muted=self._rt.state.muted)
             elif self._rt.state.view == View.SCRUB:
+                paint_episode_title(
+                    painter,
+                    self._rt.layout,
+                    title=self._rt.episode_title,
+                    viewport_w=w,
+                )
                 paint_timeline(
                     painter,
                     self._rt.state,

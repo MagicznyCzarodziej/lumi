@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPen
 
 from lumi.ui.player.overlay.layout.metrics import fmt_time
@@ -13,6 +13,7 @@ from lumi.ui.player.overlay.paint.primitives import (
     WHITE,
     paint_cell,
     paint_cell_label,
+    paint_episode_skip_icon,
     paint_play_icon,
     seek_fill_path,
     ui_font,
@@ -99,6 +100,10 @@ def paint_cross_controls(
         paint_cell(painter, rect, on_focus, press_strength=strength)
         if key == "center":
             paint_play_icon(painter, rect, playing, on_focus)
+        elif key == "prev_ep":
+            paint_episode_skip_icon(painter, rect, forward=False, on_focus=on_focus)
+        elif key == "next_ep":
+            paint_episode_skip_icon(painter, rect, forward=True, on_focus=on_focus)
         elif key in ("m1", "p1"):
             paint_cell_label(
                 painter,
@@ -122,6 +127,39 @@ def paint_cross_controls(
         state,
         layout,
         timeline_focused=timeline_focused,
+    )
+
+
+def paint_episode_title(
+    painter: QPainter,
+    layout: LayoutSnapshot,
+    *,
+    title: str | None,
+    viewport_w: int,
+) -> None:
+    if not title:
+        return
+    m = layout.metrics
+    font = ui_font(m.track_title_font, bold=True)
+    fm = QFontMetrics(font)
+    max_w = max(200, int(viewport_w * 0.55))
+    text = fm.elidedText(title, Qt.TextElideMode.ElideRight, max_w)
+    top = max(8, m.margin // 3)
+    text_rect = QRect(m.margin, top, max_w, fm.height() + 8)
+    shadow = QColor.fromRgbF(0, 0, 0, 0.35)
+    text_color = QColor.fromRgbF(1, 1, 1, 0.58)
+    painter.setFont(font)
+    painter.setPen(shadow)
+    painter.drawText(
+        text_rect.translated(1, 1),
+        int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
+        text,
+    )
+    painter.setPen(text_color)
+    painter.drawText(
+        text_rect,
+        int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
+        text,
     )
 
 

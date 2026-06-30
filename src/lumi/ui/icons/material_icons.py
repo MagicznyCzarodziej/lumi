@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 from enum import Enum, auto
+from pathlib import Path
 
-from PySide6.QtCore import QByteArray, Qt
+from PySide6.QtCore import QByteArray, Qt, QRectF
 from PySide6.QtGui import QGuiApplication, QColor, QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
+
+_EPISODE_ADVANCE_SVG = Path(__file__).resolve().parent / "episode_advance.svg"
+_EPISODE_ADVANCE_VIEWBOX_W = 40.0
+_EPISODE_ADVANCE_VIEWBOX_H = 30.0
+EPISODE_ADVANCE_ASPECT = _EPISODE_ADVANCE_VIEWBOX_W / _EPISODE_ADVANCE_VIEWBOX_H
 
 _PLAY_CIRCLE = "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zM9.5 16.5v-9l7 4.5l-7 4.5z"
 _SEARCH = (
@@ -63,6 +69,8 @@ class IconKind(Enum):
     REMOVE = auto()
     CHEVRON_LEFT = auto()
     CHEVRON_RIGHT = auto()
+    EPISODE_NEXT = auto()
+    EPISODE_PREVIOUS = auto()
 
 
 _SVG_PATHS: dict[IconKind, str] = {
@@ -98,7 +106,57 @@ def themed_icon(kind: IconKind, *, size: int = 24, color: str = "#80FFFFFF") -> 
 
 
 def paint_icon(painter: QPainter, rect, kind: IconKind, color: QColor) -> None:
+    if kind in (IconKind.EPISODE_NEXT, IconKind.EPISODE_PREVIOUS):
+        _paint_episode_advance_icon(
+            painter,
+            rect,
+            color,
+            forward=kind is IconKind.EPISODE_NEXT,
+        )
+        return
     _paint_svg_icon(painter, rect, kind, color)
+
+
+def _episode_advance_svg_bytes(color: QColor) -> bytes:
+    fill = color.name(QColor.NameFormat.HexRgb)
+    text = _EPISODE_ADVANCE_SVG.read_text(encoding="utf-8")
+    tinted = text.replace('stroke="black"', f'stroke="{fill}"').replace('fill="black"', f'fill="{fill}"')
+    return tinted.encode("utf-8")
+
+
+def _episode_advance_render_rect(rect) -> QRectF:
+    aspect = _EPISODE_ADVANCE_VIEWBOX_W / _EPISODE_ADVANCE_VIEWBOX_H
+    if rect.width() / max(1.0, rect.height()) > aspect:
+        height = rect.height()
+        width = height * aspect
+    else:
+        width = rect.width()
+        height = width / aspect
+    x = rect.x() + (rect.width() - width) / 2
+    y = rect.y() + (rect.height() - height) / 2
+    return QRectF(x, y, width, height)
+
+
+def _paint_episode_advance_icon(
+    painter: QPainter,
+    rect,
+    color: QColor,
+    *,
+    forward: bool,
+) -> None:
+    renderer = QSvgRenderer(QByteArray(_episode_advance_svg_bytes(color)))
+    target = _episode_advance_render_rect(rect)
+    painter.save()
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+    painter.setOpacity(painter.opacity() * color.alphaF())
+    if forward:
+        renderer.render(painter, target)
+    else:
+        painter.translate(target.x() + target.width(), target.y())
+        painter.scale(-1, 1)
+        renderer.render(painter, QRectF(0, 0, target.width(), target.height()))
+    painter.restore()
 
 
 def _svg_body(kind: IconKind, fill: str) -> str:

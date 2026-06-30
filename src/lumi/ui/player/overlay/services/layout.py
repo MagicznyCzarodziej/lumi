@@ -18,6 +18,8 @@ class LayoutService(OverlayService):
             browse_path=self._rt.state.browse_path,
             browse_rows=self._rt.state.browse_rows,
             panel_scroll_y=self._rt.state.panel_scroll_y,
+            prev_ep=self._rt.state.prev_ep_available,
+            next_ep=self._rt.state.next_ep_available,
         )
         self._rt.state.panel_scroll_y = self._rt.layout.panel_scroll_y
         self._rt.state.panel_w = self._rt.layout.panel_w

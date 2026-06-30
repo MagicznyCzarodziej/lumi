@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import QElapsedTimer, Qt, Signal
 from PySide6.QtGui import QKeyEvent
@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QAbstractItemView, QListWidget, QListWidgetItem, Q
 
 from lumi.ui.components.keyboard_helpers import is_escape_key, search_character
 from lumi.ui.components.list_entry import ListEntryUiModel, NameDisplayStrategy
+from lumi.domain.library.episode_navigation import paths_refer_to_same_file
 from lumi.ui.components.list_entry_delegate import ListEntryDelegate
 from lumi.ui.components.scroll_edge_fades import ScrollEdgeFadeOverlay
 from lumi.ui.theme.spacing import (
@@ -118,6 +119,21 @@ class EntriesList(QListWidget):
             self.setCurrentRow(row)
         self._focused_row = row
         self._sync_fade_overlay()
+
+    def focus_playback_path(self, path: PurePosixPath) -> bool:
+        for row in range(self.count()):
+            item = self.item(row)
+            if item is None:
+                continue
+            model = item.data(Qt.ItemDataRole.UserRole)
+            if (
+                isinstance(model, ListEntryUiModel)
+                and model.playback_path is not None
+                and paths_refer_to_same_file(model.playback_path, path)
+            ):
+                self.scroll_to_row(row)
+                return True
+        return False
 
     def _scroll_to_row_offset(self, row: int) -> None:
         """Keep the focused row a few items below the top of the viewport."""

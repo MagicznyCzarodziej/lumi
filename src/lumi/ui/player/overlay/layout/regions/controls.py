@@ -10,7 +10,12 @@ from lumi.ui.player.overlay.layout.regions.fonts import time_label_width, ui_fon
 
 
 def layout_controls_geometry(
-    w: int, h: int, m: UiMetrics
+    w: int,
+    h: int,
+    m: UiMetrics,
+    *,
+    prev_ep: bool = False,
+    next_ep: bool = False,
 ) -> tuple[dict[str, QRect], dict[str, QRect], QRect, QRect, QRect, int]:
     """Lay out CONTROLS / SCRUB chrome anchored to the bottom edge.
 
@@ -47,7 +52,12 @@ def layout_controls_geometry(
     # Transport cross — sm/md/lg buttons, centered above the timeline.
     sizes = {"lg": m.btn_lg, "md": m.btn_md, "sm": m.btn_sm}
     gap = m.gap
-    total_cross_w = sizes["sm"] + sizes["md"] + sizes["lg"] + sizes["md"] + sizes["sm"] + gap * 4
+    ep_side = sizes["sm"]
+    ep_gap = gap + max(4, gap // 2)
+    core_w = sizes["sm"] + sizes["md"] + sizes["lg"] + sizes["md"] + sizes["sm"] + gap * 4
+    ep_w = (ep_side + ep_gap) if prev_ep else 0
+    ep_w += (ep_side + ep_gap) if next_ep else 0
+    total_cross_w = core_w + ep_w
 
     cross_gap = max(20, int(h * 0.025))
     cross_bottom = row_top - cross_gap
@@ -56,6 +66,9 @@ def layout_controls_geometry(
     x = cx - total_cross_w // 2
 
     cross_regions: dict[str, QRect] = {}
+    if prev_ep:
+        cross_regions["prev_ep"] = QRect(x, cross_y - ep_side // 2, ep_side, ep_side)
+        x += ep_side + ep_gap
     for key, size_key in (
         ("m1", "sm"),
         ("m10", "md"),
@@ -66,6 +79,8 @@ def layout_controls_geometry(
         side = sizes[size_key]
         cross_regions[key] = QRect(x, cross_y - side // 2, side, side)
         x += side + gap
+    if next_ep:
+        cross_regions["next_ep"] = QRect(x, cross_y - ep_side // 2, ep_side, ep_side)
 
     # Corner hints stack above the cross (video → subs → audio, top to bottom).
     cross_top = cross_y - sizes["lg"] // 2

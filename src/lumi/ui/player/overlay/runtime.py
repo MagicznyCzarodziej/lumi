@@ -40,6 +40,9 @@ class OverlayRuntime:
     library_path: PurePosixPath | None = None
     resolved_video_path: PurePosixPath | None = None
     stream_uri: str | None = None
+    prev_episode_path: PurePosixPath | None = None
+    next_episode_path: PurePosixPath | None = None
+    episode_title: str | None = None
     selected_subtitle_path: PurePosixPath | None = None
     pending_track_restore: bool = False
     pending_aspect_restore: bool = False

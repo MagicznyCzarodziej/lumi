@@ -4,11 +4,12 @@ from pathlib import PurePosixPath
 
 from PySide6.QtCore import QTimer
 
+from lumi.domain.library.episode_navigation import find_episode_display_name, find_episode_neighbors
 from lumi.domain.video_aspect import VideoAspectMode
 from lumi.infrastructure.video_aspect_preferences import load_video_aspect, save_video_aspect
 from lumi.ui.player.controller.events import PlaybackState
 from lumi.ui.player.overlay.services.base import OverlayService
-from lumi.ui.player.overlay.state import View
+from lumi.ui.player.overlay.state import View, cross_order
 
 
 class PlaybackService(OverlayService):
@@ -101,6 +102,26 @@ class PlaybackService(OverlayService):
         self._rt.napi_status_message = None
         self._rt.volume_baseline_set = False
         self._rt.state.volume_flash = False
+        self._rt.prev_episode_path = None
+        self._rt.next_episode_path = None
+        self._rt.episode_title = None
+        if library_path is not None and self._rt.deps.library_repository is not None:
+            entries = self._rt.deps.library_repository.get_top_level_entries()
+            neighbors = find_episode_neighbors(entries, library_path)
+            self._rt.prev_episode_path = neighbors.previous
+            self._rt.next_episode_path = neighbors.next
+            self._rt.state.prev_ep_available = neighbors.previous is not None
+            self._rt.state.next_ep_available = neighbors.next is not None
+            self._rt.episode_title = find_episode_display_name(entries, library_path)
+        else:
+            self._rt.state.prev_ep_available = False
+            self._rt.state.next_ep_available = False
+        order = cross_order(
+            prev_ep=self._rt.state.prev_ep_available,
+            next_ep=self._rt.state.next_ep_available,
+        )
+        if self._rt.state.cross_focus not in order:
+            self._rt.state.cross_focus = "center"
         self._rt.volume_hide_timer.stop()
         self._o.scrub.stop_key_scrub(finalize=False)
         self._rt.state.scrub = None
@@ -110,3 +131,10 @@ class PlaybackService(OverlayService):
         self._o.activity.sync_cursor()
         QTimer.singleShot(0, self.maybe_restore_state)
         self._update()
+
+    def play_adjacent_episode(self, *, previous: bool) -> None:
+        path = self._rt.prev_episode_path if previous else self._rt.next_episode_path
+        play = self._rt.deps.on_play_path
+        if path is None or play is None:
+            return
+        play(path)

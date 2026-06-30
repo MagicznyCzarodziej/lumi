@@ -27,6 +27,7 @@ from lumi.ui.navigation.navigable_screen import NavigableScreen
 from lumi.ui.navigation.router import Router
 from lumi.ui.poster_loader import PosterLoader
 from lumi.ui.safe_video_player import SafeVideoPlayer
+from lumi.ui.screens.list_with_poster_screen import ListWithPosterScreen
 from lumi.ui.screens.episodes.screen import EpisodesScreen
 from lumi.ui.screens.film_series.screen import FilmSeriesScreen
 from lumi.ui.screens.library.screen import LibraryScreen
@@ -84,6 +85,7 @@ class MainWindow(QMainWindow):
                 napi_enabled=settings.napiprojekt.enabled,
                 napi_language=settings.napiprojekt.language,
                 sleep_inhibitor=create_sleep_inhibitor(),
+                library_repository=container.library_repository,
             )
             self._player_host.hide()
             playback = EmbeddedVideoPlayer(container.playback_uri_resolver, self._player_host)
@@ -196,6 +198,12 @@ class MainWindow(QMainWindow):
         screen = self._stack.currentWidget()
         if isinstance(screen, NavigableScreen):
             screen.focus_default()
+
+    def focus_playback_path(self, path: PurePosixPath) -> bool:
+        screen = self._stack.currentWidget()
+        if isinstance(screen, ListWithPosterScreen):
+            return screen.focus_playback_path(path)
+        return False
 
     def _sync_player_host_geometry(self) -> None:
         if self._player_host is not None:

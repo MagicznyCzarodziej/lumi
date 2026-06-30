@@ -18,6 +18,12 @@ def handle_hit(overlay: PlayerOverlay, key: str) -> None:
         overlay._rt.controller.seek_relative(10)
     elif key == "p1":
         overlay._rt.controller.seek_relative(1)
+    elif key == "prev_ep":
+        overlay.playback.play_adjacent_episode(previous=True)
+        return
+    elif key == "next_ep":
+        overlay.playback.play_adjacent_episode(previous=False)
+        return
     elif key == "subs":
         from lumi.ui.player.overlay.commands.processor import process_command
 

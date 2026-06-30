@@ -13,6 +13,7 @@ from lumi.domain.filesystem.file_repository import FileRepository
 from lumi.domain.filesystem.file_writer import FileWriter
 from lumi.domain.filesystem.files_lister import FilesLister
 from lumi.domain.filesystem.video_range_reader import VideoRangeReader
+from lumi.domain.library.library_repository import LibraryRepository
 from lumi.domain.playback import PlaybackUriResolver
 from lumi.domain.subtitles.cache import SubtitleCache
 from lumi.domain.subtitles.provider import SubtitleDownloadProvider
@@ -43,6 +44,7 @@ class VideoArea(QWidget):
         napi_enabled: bool = False,
         napi_language: str = "ENG",
         on_close: Callable[[], None] | None = None,
+        library_repository: LibraryRepository | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -54,6 +56,7 @@ class VideoArea(QWidget):
         self.mpv_widget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.mpv_widget.installEventFilter(self)
         self.controller = MpvController(lambda: self.mpv_widget.mpv)
+        self._playback_uri_resolver = playback_uri_resolver
         self.overlay = PlayerOverlay(
             self.controller,
             OverlayDeps(
@@ -71,6 +74,8 @@ class VideoArea(QWidget):
                 napi_enabled=napi_enabled,
                 napi_language=napi_language,
                 on_close=on_close,
+                library_repository=library_repository,
+                on_play_path=self._play_library_path,
             ),
             parent=self,
         )
@@ -81,6 +86,14 @@ class VideoArea(QWidget):
             Qt.ConnectionType.QueuedConnection,
         )
         self._library_path: PurePosixPath | None = None
+
+    def _play_library_path(self, path: PurePosixPath) -> None:
+        resolver = self._playback_uri_resolver
+        if resolver is None:
+            return
+        resolved = resolver.resolve_path(path)
+        uri = resolver.stream_uri(resolved)
+        self.play_file(uri, path, resolved_video_path=resolved)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -117,6 +130,10 @@ class VideoArea(QWidget):
         self._persist_playback_state()
         self._library_path = None
         self.mpv_widget.stop()
+
+    @property
+    def current_library_path(self) -> PurePosixPath | None:
+        return self._library_path
 
     def shutdown(self) -> None:
         self._persist_playback_state()
