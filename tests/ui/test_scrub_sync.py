@@ -78,6 +78,21 @@ def test_quick_key_scrub_release_does_not_seek_to_start(qapp) -> None:
     assert controller.seek_relative.call_count == 1
 
 
+def test_key_scrub_release_keeps_scrubber_visible(qapp) -> None:
+    controller = _controller_with_stale_cache(time_pos=45.0, duration=120.0)
+    overlay = PlayerOverlay(controller)
+    overlay._rt.state = OverlayState(view=View.WATCHING)
+
+    overlay.execute_command(RoutedCommand(Command.START_KEY_SCRUB, delta=1))
+    assert overlay.state.view == View.SCRUB
+
+    overlay.execute_command(RoutedCommand(Command.STOP_KEY_SCRUB))
+
+    assert overlay.state.view == View.SCRUB
+    assert overlay._rt.hide_timer.isActive()
+    assert overlay._rt.hide_timer.remainingTime() <= overlay.SCRUB_HIDE_MS
+
+
 def test_key_scrub_updates_overlay_duration_for_timeline(qapp) -> None:
     controller = _controller_with_stale_cache(time_pos=10.0, duration=90.0)
     overlay = PlayerOverlay(controller)

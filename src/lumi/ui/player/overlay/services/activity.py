@@ -117,7 +117,11 @@ class ActivityService(OverlayService):
             return
         self._rt.dim_timer.stop()
         self._rt.ui_opacity = 1.0
-        if self._rt.state.view in (View.CONTROLS, View.SCRUB):
+        if self._rt.state.view == View.SCRUB:
+            hide_ms = self._o.SCRUB_HIDE_MS
+            self._rt.hide_timer.start(hide_ms)
+            self._rt.dim_timer.start(max(0, hide_ms - self._o.PRE_HIDE_FADE_MS))
+        elif self._rt.state.view == View.CONTROLS:
             self._rt.hide_timer.start(self._o.HIDE_MS)
             self._rt.dim_timer.start(max(0, self._o.HIDE_MS - self._o.PRE_HIDE_FADE_MS))
         self._update()

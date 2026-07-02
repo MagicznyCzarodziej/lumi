@@ -36,6 +36,7 @@ class PlayerOverlay(QWidget):
     PRE_HIDE_FADE_MS = 1000
     FADED_OPACITY = 0.75
     HIDE_MS = 3500
+    SCRUB_HIDE_MS = 2000
     VOLUME_HIDE_MS = 2000
     PRESS_ANIM_MS = 16
 
