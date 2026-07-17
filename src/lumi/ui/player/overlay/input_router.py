@@ -234,6 +234,10 @@ class InputRouter:
                     return None
                 delta = -1 if key == Qt.Key.Key_Left else 1
                 return RoutedCommand(Command.START_KEY_SCRUB, delta=delta)
+            if key in (Qt.Key.Key_Up, Qt.Key.Key_W):
+                return RoutedCommand(Command.TIMELINE_UP)
+            if key == Qt.Key.Key_Down:
+                return RoutedCommand(Command.TIMELINE_DOWN)
             if key == Qt.Key.Key_Space:
                 return RoutedCommand(Command.TOGGLE_PAUSE)
             if is_dismiss_key(key):

@@ -7,10 +7,11 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtWidgets import QApplication
 
+from lumi.domain.video_aspect import VideoAspectMode
 from lumi.ui.player.controller.events import PlaybackState
 from lumi.ui.player.overlay.input_router import Command, RoutedCommand
 from lumi.ui.player.overlay.overlay import PlayerOverlay
-from lumi.ui.player.overlay.state import OverlayState, View
+from lumi.ui.player.overlay.state import FocusZone, OverlayState, View
 
 
 @pytest.fixture(scope="session")
@@ -37,6 +38,10 @@ def _controller_with_stale_cache(*, time_pos: float, duration: float) -> MagicMo
     controller.duration.return_value = duration
     controller.has_media.return_value = True
     controller.is_paused.return_value = False
+    controller.is_playing.return_value = True
+    controller.video_aspect_mode.return_value = VideoAspectMode.AUTO
+    controller.current_subtitle_label.return_value = ""
+    controller.current_audio_label.return_value = ""
     return controller
 
 
@@ -102,3 +107,17 @@ def test_key_scrub_updates_overlay_duration_for_timeline(qapp) -> None:
 
     assert overlay.state.duration == 90.0
     assert overlay.state.time_pos == 20.0
+
+
+def test_key_scrub_up_shows_full_controls(qapp) -> None:
+    controller = _controller_with_stale_cache(time_pos=45.0, duration=120.0)
+    overlay = PlayerOverlay(controller)
+    overlay._rt.state = OverlayState(view=View.WATCHING)
+
+    overlay.execute_command(RoutedCommand(Command.START_KEY_SCRUB, delta=1))
+    assert overlay.state.view == View.SCRUB
+
+    overlay.execute_command(RoutedCommand(Command.TIMELINE_UP))
+
+    assert overlay.state.view == View.CONTROLS
+    assert overlay.state.focus_zone == FocusZone.CONTROLS

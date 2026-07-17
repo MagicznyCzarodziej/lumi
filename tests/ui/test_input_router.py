@@ -142,6 +142,22 @@ def test_scrub_left_continues_scrub(qapp) -> None:
     assert routed.delta == -1
 
 
+def test_scrub_up_shows_controls(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(view=View.SCRUB)
+    routed = router.route_key(_key(Qt.Key.Key_Up), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.TIMELINE_UP
+
+
+def test_scrub_down_dismisses(qapp) -> None:
+    router = InputRouter()
+    state = OverlayState(view=View.SCRUB)
+    routed = router.route_key(_key(Qt.Key.Key_Down), state, has_media=True)
+    assert routed is not None
+    assert routed.command == Command.TIMELINE_DOWN
+
+
 def test_tracks_right_moves_to_save_action(qapp) -> None:
     router = InputRouter()
     state = OverlayState(
