@@ -30,7 +30,7 @@ def test_linux_sleep_inhibitor_starts_systemd_inhibit(which: MagicMock, popen: M
     assert args[0] == "systemd-inhibit"
     assert "--what=sleep:idle" in args
     inhibitor.release()
-    proc.terminate.assert_called_once()
+    proc.kill.assert_called_once()
 
 
 @patch("lumi.infrastructure.power.linux_sleep_inhibitor.shutil.which", return_value=None)

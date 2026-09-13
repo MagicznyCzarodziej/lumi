@@ -49,6 +49,7 @@ class MainWindow(QMainWindow):
         self._settings = settings
         self._container = container
         self._init_worker: LibraryInitWorker | None = None
+        self._quit_requested = False
 
         self.setWindowTitle("Lumi")
         self.setMinimumSize(scaled(1280), scaled(720))
@@ -214,12 +215,10 @@ class MainWindow(QMainWindow):
         self._sync_player_host_geometry()
 
     def _quit_application(self) -> None:
-        from PySide6.QtWidgets import QApplication
-
+        if getattr(self, "_quit_requested", False):
+            return
+        self._quit_requested = True
         self.close()
-        app = QApplication.instance()
-        if app is not None:
-            app.quit()
 
     def _stop_background_workers(self) -> None:
         worker = self._init_worker
@@ -232,9 +231,9 @@ class MainWindow(QMainWindow):
             self._init_worker = None
             return
         worker.requestInterruption()
-        if not worker.wait(3000):
+        if not worker.wait(400):
             worker.terminate()
-            worker.wait(1000)
+            worker.wait(200)
 
     def closeEvent(self, event) -> None:
         self._stop_background_workers()

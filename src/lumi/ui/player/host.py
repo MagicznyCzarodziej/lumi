@@ -129,9 +129,8 @@ class PlayerHost(QWidget):
         if self._sleep_inhibitor is not None:
             self._sleep_inhibitor.release()
         if self.isVisible():
-            self._video_area.stop()
             self.hide()
-        self._video_area.shutdown()
+        self._video_area.shutdown(persist=False)
 
     def is_playing(self) -> bool:
         return self.isVisible()
@@ -147,12 +146,10 @@ class PlayerHost(QWidget):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.matches(QKeySequence.StandardKey.Quit):
             parent = self.parentWidget()
-            if parent is not None:
-                parent.close()
+            if parent is not None and hasattr(parent, "_quit_application"):
+                parent._quit_application()
             else:
-                app = QApplication.instance()
-                if app is not None:
-                    app.quit()
+                self.close()
             event.accept()
             return
         self._video_area.forward_key_event(event)

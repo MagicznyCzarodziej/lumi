@@ -135,8 +135,9 @@ class VideoArea(QWidget):
     def current_library_path(self) -> PurePosixPath | None:
         return self._library_path
 
-    def shutdown(self) -> None:
-        self._persist_playback_state()
+    def shutdown(self, *, persist: bool = True) -> None:
+        if persist:
+            self._persist_playback_state()
         self._library_path = None
         self.overlay.unbind()
         self.mpv_widget.shutdown()

@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
+import logging
+import threading
+
 from lumi.config.settings import Settings
 from lumi.config.validation import validate_settings_for_mode
 from lumi.config.smb_config import SmbConfig
@@ -39,6 +42,8 @@ from lumi.infrastructure.smb.smb_library_builder import SmbLibraryBuilder
 from lumi.infrastructure.smb.smb_playback_uri import SmbPlaybackUriResolver
 from lumi.infrastructure.smb.smb_stream_server import SmbHttpStreamServer
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class Container:
@@ -60,11 +65,18 @@ class Container:
     smb_stream_server: SmbHttpStreamServer | None = None
 
     def shutdown(self) -> None:
-        resolver = self.playback_uri_resolver
-        if isinstance(resolver, SmbPlaybackUriResolver):
-            resolver.shutdown()
-        if self.smb_file_repository is not None:
-            self.smb_file_repository.disconnect()
+        def _shutdown() -> None:
+            resolver = self.playback_uri_resolver
+            if isinstance(resolver, SmbPlaybackUriResolver):
+                resolver.shutdown()
+            if self.smb_file_repository is not None:
+                self.smb_file_repository.disconnect()
+
+        thread = threading.Thread(target=_shutdown, name="lumi-shutdown", daemon=True)
+        thread.start()
+        thread.join(timeout=1.5)
+        if thread.is_alive():
+            logger.warning("SMB shutdown did not finish within 1.5s; exiting anyway")
 
 
 def build_container(settings: Settings | None = None) -> Container:

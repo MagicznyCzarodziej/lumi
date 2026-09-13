@@ -149,32 +149,22 @@ class MpvWidget(QOpenGLWidget):
     def stop(self):
         self.mpv.command("stop")
 
-    def shutdown(self):
+    def shutdown(self) -> None:
+        """Release mpv without GL teardown — makeCurrent() can deadlock on Linux during quit."""
         self._updates_enabled = False
+        try:
+            self.frameSwapped.disconnect(self._on_swap)
+        except (TypeError, RuntimeError):
+            pass
+        self._ctx = None
         player = self.mpv
         self.mpv = None
-        if player is not None:
-            mpv_module = get_mpv()
-            try:
-                player.command("stop")
-            except (AttributeError, OSError, ValueError):
-                pass
-            try:
-                player.quit()
-            except (mpv_module.ShutdownError, AttributeError, OSError):
-                pass
-            try:
-                player.terminate()
-            except (AttributeError, OSError):
-                pass
-        if not self.isValid():
+        if player is None:
             return
-        self.makeCurrent()
-        if self._ctx is not None:
-            self._ctx.update_cb = None
-            self._ctx.free()
-            self._ctx = None
-        self.doneCurrent()
+        try:
+            player.terminate()
+        except (AttributeError, OSError, ValueError):
+            pass
 
 
 def _redact_uri(uri: str) -> str:

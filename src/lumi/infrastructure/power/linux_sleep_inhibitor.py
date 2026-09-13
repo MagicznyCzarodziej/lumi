@@ -44,9 +44,8 @@ class LinuxSleepInhibitor:
         if proc is None:
             return
         if proc.poll() is None:
-            proc.terminate()
+            proc.kill()
             try:
-                proc.wait(timeout=2)
+                proc.wait(timeout=0.2)
             except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait()
+                pass
