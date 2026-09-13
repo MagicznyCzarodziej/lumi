@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from tests.constants import MOCK_LIBRARY_ROOT
 import threading
 from pathlib import PurePosixPath
 from unittest.mock import MagicMock, patch
@@ -11,6 +10,7 @@ from smbprotocol.exceptions import SMBResponseException
 
 from lumi.infrastructure.smb.connection import SmbShareSession
 from lumi.infrastructure.smb.smb_file_repository import SmbFileRepository
+from tests.constants import MOCK_LIBRARY_ROOT
 
 
 def test_file_exists_uses_direct_open_instead_of_directory_listing() -> None:
@@ -37,6 +37,18 @@ def test_path_exists_returns_false_when_open_fails() -> None:
         assert module._path_exists(tree, MOCK_LIBRARY_ROOT / "missing.jpg") is False
 
     file_handle.close.assert_not_called()
+
+
+def test_reconnect_for_playback_disconnects_all_sessions() -> None:
+    config = MagicMock()
+    session = MagicMock(spec=SmbShareSession)
+    with patch("lumi.infrastructure.smb.smb_file_repository.SmbShareSession", return_value=session):
+        repository = SmbFileRepository(config)
+        assert repository.session is session
+
+        repository.reconnect_for_playback()
+
+    session.disconnect.assert_called_once()
 
 
 def test_each_thread_gets_its_own_smb_session() -> None:

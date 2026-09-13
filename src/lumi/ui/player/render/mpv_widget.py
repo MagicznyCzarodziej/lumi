@@ -151,22 +151,29 @@ class MpvWidget(QOpenGLWidget):
 
     def shutdown(self):
         self._updates_enabled = False
-        self.makeCurrent()
-        if self._ctx is not None:
-            self._ctx.update_cb = None
-            self._ctx.free()
-            self._ctx = None
         player = self.mpv
         self.mpv = None
         if player is not None:
+            mpv_module = get_mpv()
+            try:
+                player.command("stop")
+            except (AttributeError, OSError, ValueError):
+                pass
             try:
                 player.quit()
-            except (get_mpv().ShutdownError, AttributeError, OSError):
+            except (mpv_module.ShutdownError, AttributeError, OSError):
                 pass
             try:
                 player.terminate()
             except (AttributeError, OSError):
                 pass
+        if not self.isValid():
+            return
+        self.makeCurrent()
+        if self._ctx is not None:
+            self._ctx.update_cb = None
+            self._ctx.free()
+            self._ctx = None
         self.doneCurrent()
 
 

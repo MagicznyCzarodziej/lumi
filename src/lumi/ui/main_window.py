@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
         quit_action = QAction("Quit", self)
         quit_action.setShortcut(QKeySequence.StandardKey.Quit)
         quit_action.setShortcutContext(Qt.ShortcutContext.ApplicationShortcut)
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(self._quit_application)
         self.addAction(quit_action)
 
         rebuild_action = QAction("Rebuild library", self)
@@ -213,9 +213,34 @@ class MainWindow(QMainWindow):
         super().resizeEvent(event)
         self._sync_player_host_geometry()
 
+    def _quit_application(self) -> None:
+        from PySide6.QtWidgets import QApplication
+
+        self.close()
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
+
+    def _stop_background_workers(self) -> None:
+        worker = self._init_worker
+        if worker is None:
+            return
+        try:
+            if not worker.isRunning():
+                return
+        except RuntimeError:
+            self._init_worker = None
+            return
+        worker.requestInterruption()
+        if not worker.wait(3000):
+            worker.terminate()
+            worker.wait(1000)
+
     def closeEvent(self, event) -> None:
+        self._stop_background_workers()
         if self._player_host is not None:
             self._player_host.shutdown()
+        event.accept()
         super().closeEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:

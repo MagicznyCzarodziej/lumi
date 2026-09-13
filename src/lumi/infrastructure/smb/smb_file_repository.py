@@ -33,6 +33,13 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 _READ_CHUNK_SIZE = 65536
 _FILE_SHARE = ShareAccess.FILE_SHARE_READ | ShareAccess.FILE_SHARE_WRITE | ShareAccess.FILE_SHARE_DELETE
+_RETRYABLE_SMB_ERRORS = (
+    SMBResponseException,
+    ConnectionError,
+    TimeoutError,
+    BrokenPipeError,
+    OSError,
+)
 
 
 class SmbFileRepository(FilesLister, FileRepository):
@@ -55,37 +62,33 @@ class SmbFileRepository(FilesLister, FileRepository):
         return f"smb://{self._config.hostname}/{self._config.share_name}"
 
     def list_files_and_directories(self, directory_absolute_path: PurePosixPath) -> list[DirectoryEntry]:
-        session = self._get_session()
-        session.ensure_connected()
-        try:
-            return _list_directory(session.tree(), directory_absolute_path)
-        except SMBResponseException as exc:
-            logger.warning("Could not list path '%s': %s", directory_absolute_path, exc)
-            return []
+        result = self._with_smb_retry(
+            lambda session: _list_directory(session.tree(), directory_absolute_path),
+            directory_absolute_path,
+        )
+        return result if result is not None else []
 
     def use_read_file_stream(
         self,
         absolute_path: PurePosixPath,
         block: Callable[[Iterator[bytes]], T],
     ) -> T | None:
-        session = self._get_session()
-        session.ensure_connected()
-        if not self._path_exists_on(session, absolute_path):
-            logger.warning("File does not exist: %s", absolute_path)
-            return None
-
-        try:
+        def operation(session: SmbShareSession) -> T | None:
+            if not _path_exists(session.tree(), absolute_path):
+                logger.warning("File does not exist: %s", absolute_path)
+                return None
             return _read_file(session.tree(), absolute_path, block)
-        except Exception:
-            logger.exception("Error opening or reading file '%s'", absolute_path)
-            return None
+
+        return self._with_smb_retry(operation, absolute_path)
 
     def file_exists(self, absolute_path: PurePosixPath) -> bool:
-        session = self._get_session()
-        session.ensure_connected()
         if not absolute_path.name:
             return False
-        return self._path_exists_on(session, absolute_path)
+        result = self._with_smb_retry(
+            lambda session: _path_exists(session.tree(), absolute_path),
+            absolute_path,
+        )
+        return bool(result)
 
     def read_file_bytes(self, absolute_path: PurePosixPath) -> bytes | None:
         def collect(chunks: Iterator[bytes]) -> bytes:
@@ -119,6 +122,10 @@ class SmbFileRepository(FilesLister, FileRepository):
         for session in sessions:
             session.disconnect()
         self._thread_local = threading.local()
+
+    def reconnect_for_playback(self) -> None:
+        """Drop cached SMB sessions (e.g. after NAS idle timeout) before streaming."""
+        self.disconnect()
 
     def disconnect_extra_sessions(self) -> None:
         """Close SMB sessions opened by worker threads, keeping the caller's session."""
@@ -154,7 +161,7 @@ class SmbFileRepository(FilesLister, FileRepository):
             session.ensure_connected()
             try:
                 return operation(session)
-            except SMBResponseException as exc:
+            except _RETRYABLE_SMB_ERRORS as exc:
                 logger.warning(
                     "SMB operation failed for %s (attempt %d): %s",
                     share_relative_path(absolute_path),

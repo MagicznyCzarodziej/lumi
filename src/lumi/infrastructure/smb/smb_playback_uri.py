@@ -23,6 +23,7 @@ class SmbPlaybackUriResolver:
         self._video_extensions = video_extensions
 
     def playback_uri(self, absolute_path: PurePosixPath) -> str:
+        self._smb_file_repository.reconnect_for_playback()
         resolved = resolve_playback_file(
             self._smb_file_repository,
             absolute_path,
@@ -32,6 +33,7 @@ class SmbPlaybackUriResolver:
         return self.stream_uri(resolved)
 
     def resolve_path(self, hint_path: PurePosixPath) -> PurePosixPath:
+        self._smb_file_repository.reconnect_for_playback()
         return resolve_playback_file(
             self._smb_file_repository,
             hint_path,

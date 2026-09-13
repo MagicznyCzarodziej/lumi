@@ -125,8 +125,12 @@ class PlayerHost(QWidget):
             parent.restore_screen_focus()
 
     def shutdown(self) -> None:
+        self.releaseKeyboard()
         if self._sleep_inhibitor is not None:
             self._sleep_inhibitor.release()
+        if self.isVisible():
+            self._video_area.stop()
+            self.hide()
         self._video_area.shutdown()
 
     def is_playing(self) -> bool:
