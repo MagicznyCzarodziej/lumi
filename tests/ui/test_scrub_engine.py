@@ -11,10 +11,10 @@ def test_start_key_scrub_advances_from_current_position() -> None:
     state = ScrubState(time_pos=45.0, duration=120.0, scrub_fraction=45.0 / 120.0)
     state, seek, debounce = ScrubEngine.start_key_scrub(state, 1)
 
-    assert state.time_pos == 55.0
-    assert state.scrub_fraction == pytest.approx(55.0 / 120.0)
+    assert state.time_pos == 50.0
+    assert state.scrub_fraction == pytest.approx(50.0 / 120.0)
     assert seek is not None
-    assert seek.fraction == pytest.approx(55.0 / 120.0)
+    assert seek.fraction == pytest.approx(50.0 / 120.0)
     assert seek.exact is True
     assert debounce is None
 
@@ -41,8 +41,8 @@ def test_stop_key_scrub_skips_finalize_when_not_dirty() -> None:
 def test_stop_key_scrub_finalizes_after_dirty_scrub() -> None:
     state = ScrubState(
         keyboard_scrubbing=True,
-        scrub_fraction=55.0 / 120.0,
-        time_pos=55.0,
+        scrub_fraction=50.0 / 120.0,
+        time_pos=50.0,
         duration=120.0,
         key_scrub_dirty=True,
     )
@@ -50,4 +50,4 @@ def test_stop_key_scrub_finalizes_after_dirty_scrub() -> None:
 
     assert not state.keyboard_scrubbing
     assert seek is not None
-    assert seek.fraction == pytest.approx(55.0 / 120.0)
+    assert seek.fraction == pytest.approx(50.0 / 120.0)

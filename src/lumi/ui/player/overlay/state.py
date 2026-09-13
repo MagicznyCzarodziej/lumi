@@ -30,7 +30,7 @@ class FocusZone(str, Enum):
     TIMELINE = "timeline"
 
 
-CORE_CROSS_ORDER = ("m1", "m10", "center", "p10", "p1")
+CORE_CROSS_ORDER = ("m1", "center", "p1")
 CROSS_ORDER = CORE_CROSS_ORDER
 
 

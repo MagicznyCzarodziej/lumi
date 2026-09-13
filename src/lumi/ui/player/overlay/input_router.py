@@ -352,7 +352,7 @@ class InputRouter:
         if seek is not None and seek.contains(pos) and state.view in (View.CONTROLS, View.SCRUB):
             return RoutedCommand(Command.START_MOUSE_SCRUB, pos=pos)
 
-        for key in ("prev_ep", "m1", "m10", "center", "p10", "p1", "next_ep", "video", "subs", "audio"):
+        for key in ("prev_ep", "m1", "center", "p1", "next_ep", "video", "subs", "audio"):
             region = hit_regions.get(key)
             if region is not None and region.contains(pos):
                 return RoutedCommand(Command.HIT, hit_key=key)

@@ -1,0 +1,13 @@
+#LibraryStatusBar {
+    background-color: @SIDEBAR_BG@;
+    border-top: 1px solid @SIDEBAR_DIVIDER@;
+    margin: 0;
+    padding: 0;
+}
+
+#LibraryStatusBar QLabel#statusText {
+    color: @SIDEBAR_TEXT@;
+    font-size: @SIDEBAR_MENU_FONT_SIZE@px;
+    margin: 0;
+    padding: @SPACE_SM@px;
+}

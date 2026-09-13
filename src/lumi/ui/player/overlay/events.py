@@ -156,6 +156,8 @@ class OverlayEvents:
                     playing=self._rt.controller.is_playing(),
                     press_key=press_key,
                     press_strength=press_strength_val,
+                    viewport_w=w,
+                    viewport_h=h,
                 )
                 paint_corner_hints(
                     painter,

@@ -126,18 +126,6 @@ class TopBar(QWidget):
         layout.addWidget(divider)
         layout.addWidget(star_icon)
 
-    def set_loading_progress(self, progress: tuple[int, int, str] | None) -> None:
-        if progress is None:
-            self._search.setEnabled(True)
-            self._search.setPlaceholderText("Search library...")
-            return
-        completed, total, directory_name = progress
-        self._search.setEnabled(False)
-        if directory_name:
-            self._search.setPlaceholderText(f"Building library… {completed}/{total} — {directory_name}")
-        else:
-            self._search.setPlaceholderText(f"Building library… {completed}/{total}")
-
     def clear_search(self) -> None:
         self._search.blockSignals(True)
         self._search.clear()

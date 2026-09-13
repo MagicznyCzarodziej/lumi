@@ -3,19 +3,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QRect
-from PySide6.QtGui import QColor, QFontMetrics, QPainter, QPen
+from PySide6.QtGui import QColor, QFontMetrics, QLinearGradient, QPainter, QPen
 
 from lumi.ui.player.overlay.layout.metrics import fmt_time
 from lumi.ui.player.overlay.layout.regions import LayoutSnapshot
 from lumi.ui.player.overlay.paint.primitives import (
     ACCENT,
     UNFOCUSED_SCRUB_FILL,
-    WHITE,
     paint_cell,
     paint_cell_label,
     paint_episode_skip_icon,
     paint_play_icon,
-    seek_fill_path,
     ui_font,
 )
 from lumi.ui.player.overlay.state import FocusZone, OverlayState
@@ -31,54 +29,71 @@ def paint_timeline(
     pct = 0.0 if not state.duration else max(0.0, min(1.0, state.time_pos / state.duration))
     m = layout.metrics
     inner = layout.seek_inner
-    radius = max(3, inner.height() // 2)
     track_bg = QColor.fromRgbF(1, 1, 1, 0.36) if timeline_focused else UNFOCUSED_SCRUB_FILL
     progress = QColor(ACCENT) if timeline_focused else QColor.fromRgbF(1, 1, 1, 0.62)
-    dot_border = QColor(ACCENT) if timeline_focused else QColor.fromRgbF(1, 1, 1, 0.72)
-    dot_fill = QColor(WHITE) if timeline_focused else QColor.fromRgbF(0.94, 0.94, 0.96)
+    playhead_color = QColor(ACCENT) if timeline_focused else QColor.fromRgbF(1, 1, 1, 0.88)
     time_color = QColor(255, 255, 255)
-    elapsed_color = time_color
-    total_color = time_color
-
-    if timeline_focused:
-        painter.setPen(QPen(QColor(ACCENT), 2))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRoundedRect(inner, radius, radius)
-
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(track_bg)
-    painter.drawRoundedRect(inner, radius, radius)
-
-    fill_w = int(inner.width() * pct)
-    if fill_w >= inner.width():
-        painter.setBrush(progress)
-        painter.drawRoundedRect(inner, radius, radius)
-    elif fill_w > 0:
-        painter.setBrush(progress)
-        painter.drawPath(seek_fill_path(inner.x(), inner.y(), fill_w, inner.height(), radius))
-
-    dot = max(16, min(36, int(m.scale * 0.028)))
-    dot_x = inner.x() + fill_w if fill_w > 0 else inner.x()
-    dot_x = min(max(inner.x(), dot_x), inner.right())
-    dot_rect = inner.__class__(dot_x - dot // 2, inner.center().y() - dot // 2, dot, dot)
-    painter.setBrush(dot_fill)
-    painter.setPen(QPen(dot_border, 2))
-    painter.drawEllipse(dot_rect)
 
     time_font = ui_font(layout.time_font_size, bold=True)
     painter.setFont(time_font)
-    painter.setPen(elapsed_color)
+    painter.setPen(time_color)
     painter.drawText(
         layout.elapsed_rect,
         int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft),
         fmt_time(state.time_pos),
     )
-    painter.setPen(total_color)
     painter.drawText(
         layout.total_rect,
         int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight),
         fmt_time(state.duration),
     )
+
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(track_bg)
+    painter.drawRect(inner)
+
+    fill_w = int(inner.width() * pct)
+    if fill_w > 0:
+        painter.setBrush(progress)
+        painter.drawRect(inner.x(), inner.y(), fill_w, inner.height())
+
+    playhead_x = inner.x() + fill_w if fill_w > 0 else inner.x()
+    playhead_x = min(max(inner.x(), playhead_x), inner.right())
+    tick_w = max(5, min(8, int(m.scale * 0.006)))
+    tick_h = max(20, min(32, int(m.scale * 0.026)))
+    tick_x = playhead_x - tick_w // 2
+    tick_rect = QRect(tick_x, inner.top() - tick_h, tick_w, tick_h)
+    tick_radius = tick_w // 2
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(playhead_color)
+    painter.drawRoundedRect(tick_rect, tick_radius, tick_radius)
+
+
+_CROSS_KEYS = frozenset(
+    {"m1", "center", "p1", "prev_ep", "next_ep"},
+)
+
+
+def _paint_controls_backdrop(
+    painter: QPainter,
+    *,
+    viewport_w: int,
+    viewport_h: int,
+    layout: LayoutSnapshot,
+) -> None:
+    cross_rects = [
+        layout.hit_regions[k] for k in _CROSS_KEYS if k in layout.hit_regions
+    ]
+    if not cross_rects:
+        return
+    pad = layout.metrics.gap
+    top = min(r.top() for r in cross_rects) - pad * 2
+    top = max(0, top)
+    grad = QLinearGradient(0.0, float(top), 0.0, float(viewport_h))
+    grad.setColorAt(0.0, QColor.fromRgbF(0, 0, 0, 0.0))
+    grad.setColorAt(0.45, QColor.fromRgbF(0, 0, 0, 0.28))
+    grad.setColorAt(1.0, QColor.fromRgbF(0, 0, 0, 0.62))
+    painter.fillRect(0, top, viewport_w, viewport_h - top, grad)
 
 
 def paint_cross_controls(
@@ -89,8 +104,17 @@ def paint_cross_controls(
     playing: bool,
     press_key: str | None = None,
     press_strength: float = 0.0,
+    viewport_w: int | None = None,
+    viewport_h: int | None = None,
 ) -> None:
     m = layout.metrics
+    if viewport_w is not None and viewport_h is not None:
+        _paint_controls_backdrop(
+            painter,
+            viewport_w=viewport_w,
+            viewport_h=viewport_h,
+            layout=layout,
+        )
 
     for key, rect in layout.hit_regions.items():
         if key in {"seek", "subs", "audio", "video"}:
@@ -109,18 +133,9 @@ def paint_cross_controls(
                 painter,
                 rect,
                 "−1s" if key == "m1" else "+1s",
-                m.font_sm,
+                max(m.font_sm, int(rect.height() * 0.26)),
                 on_focus,
             )
-        elif key in ("m10", "p10"):
-            paint_cell_label(
-                painter,
-                rect,
-                "−10s" if key == "m10" else "+10s",
-                m.font_sm + (m.font_md - m.font_sm),
-                on_focus,
-            )
-
     timeline_focused = state.focus_zone == FocusZone.TIMELINE
     paint_timeline(
         painter,

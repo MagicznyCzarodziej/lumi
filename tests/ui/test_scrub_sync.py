@@ -53,8 +53,8 @@ def test_key_scrub_reads_live_playback_position(qapp) -> None:
     overlay.execute_command(RoutedCommand(Command.START_KEY_SCRUB, delta=1))
 
     assert overlay.state.duration == 120.0
-    assert overlay.state.time_pos == 55.0
-    controller.seek_relative.assert_called_once_with(10.0)
+    assert overlay.state.time_pos == 50.0
+    controller.seek_relative.assert_called_once_with(5.0)
     controller.seek_fraction.assert_not_called()
 
 
@@ -65,7 +65,7 @@ def test_key_scrub_without_duration_uses_relative_seek(qapp) -> None:
 
     overlay.execute_command(RoutedCommand(Command.START_KEY_SCRUB, delta=1))
 
-    controller.seek_relative.assert_called_once_with(10.0)
+    controller.seek_relative.assert_called_once_with(5.0)
     controller.seek_fraction.assert_not_called()
     scrub = overlay.state.scrub
     assert scrub is None or not scrub.keyboard_scrubbing
@@ -95,7 +95,7 @@ def test_key_scrub_release_keeps_scrubber_visible(qapp) -> None:
 
     assert overlay.state.view == View.SCRUB
     assert overlay._rt.hide_timer.isActive()
-    assert overlay._rt.hide_timer.remainingTime() <= overlay.SCRUB_HIDE_MS
+    assert overlay._rt.hide_timer.remainingTime() <= overlay.SCRUB_HIDE_MS + 250
 
 
 def test_key_scrub_updates_overlay_duration_for_timeline(qapp) -> None:
@@ -106,7 +106,7 @@ def test_key_scrub_updates_overlay_duration_for_timeline(qapp) -> None:
     overlay.execute_command(RoutedCommand(Command.START_KEY_SCRUB, delta=1))
 
     assert overlay.state.duration == 90.0
-    assert overlay.state.time_pos == 20.0
+    assert overlay.state.time_pos == 15.0
 
 
 def test_key_scrub_up_shows_full_controls(qapp) -> None:

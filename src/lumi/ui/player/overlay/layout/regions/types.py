@@ -15,9 +15,7 @@ class HitRegion(str, Enum):
 
     OPEN = "open"
     M1 = "m1"
-    M10 = "m10"
     CENTER = "center"
-    P10 = "p10"
     P1 = "p1"
     SUBS = "subs"
     AUDIO = "audio"

@@ -44,6 +44,7 @@ class LibraryScreen(NavigableScreen):
         self._ui_state = LibraryUiState(entries=[], tags=[], is_loading=True)
         self._previous_alphabet_letter: str | None = None
         self._is_loading = True
+        self._rebuild_in_progress = False
 
         self._layout = LibraryLayout()
         root = QVBoxLayout(self)
@@ -80,9 +81,10 @@ class LibraryScreen(NavigableScreen):
 
     def set_loading(self) -> None:
         self._is_loading = True
+        self._rebuild_in_progress = False
         self._search_query = ""
         self._layout.top_bar.clear_search()
-        self._layout.top_bar.set_loading_progress(None)
+        self._layout.status_bar.set_progress(None)
         self._layout.entries.set_entries([])
         self._layout.empty_label.hide()
         self._layout.entries.show()
@@ -96,15 +98,18 @@ class LibraryScreen(NavigableScreen):
 
     def set_rebuilding(self) -> None:
         """Keep the current library visible while a rebuild runs in the background."""
-        self._layout.top_bar.set_loading_progress((0, 0, ""))
+        self._rebuild_in_progress = True
+        self._layout.status_bar.set_progress((0, 0, ""))
 
     def clear_rebuild_progress(self) -> None:
-        self._layout.top_bar.set_loading_progress(None)
+        self._rebuild_in_progress = False
+        self._layout.status_bar.set_progress(None)
 
     def set_ready(self, context: ScreenContext) -> None:
         self._context = context
         self._is_loading = False
-        self._layout.top_bar.set_loading_progress(None)
+        self._rebuild_in_progress = False
+        self._layout.status_bar.set_progress(None)
         self._layout.poster_skeleton.stop()
         self._layout.entries_skeleton.stop()
         self._refresh_entries_from_repository()
@@ -121,7 +126,8 @@ class LibraryScreen(NavigableScreen):
 
     def set_error(self, message: str) -> None:
         self._is_loading = False
-        self._layout.top_bar.set_loading_progress(None)
+        self._rebuild_in_progress = False
+        self._layout.status_bar.set_progress(None)
         self._layout.poster_skeleton.stop()
         self._layout.entries_skeleton.stop()
         self._layout.entries.hide()
@@ -130,11 +136,14 @@ class LibraryScreen(NavigableScreen):
         self._layout.poster.set_poster_path(None, immediate=True)
 
     def set_loading_progress(self, completed: int, total: int, directory_name: str) -> None:
-        self._layout.top_bar.set_loading_progress((completed, total, directory_name))
+        if not self._rebuild_in_progress:
+            return
+        self._layout.status_bar.set_progress((completed, total, directory_name))
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         self._layout.sync_skeleton_geometry()
+        self._layout.position_status_bar()
         self._layout.position_sidebar_drawer()
 
     def _request_rebuild(self) -> None:

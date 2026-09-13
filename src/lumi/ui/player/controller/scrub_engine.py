@@ -33,7 +33,7 @@ class ScrubEngine:
     RAMP_MS = 2800
     SEEK_DEBOUNCE_MS = 40
     KEY_SCRUB_SEEK_MS = 120
-    INITIAL_KEY_SCRUB_S = 10.0
+    INITIAL_KEY_SCRUB_S = 5.0
 
     @staticmethod
     def fraction_at(pos_x: float, inner_x: float, inner_width: float) -> float:

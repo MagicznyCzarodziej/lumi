@@ -10,12 +10,8 @@ if TYPE_CHECKING:
 def handle_hit(overlay: PlayerOverlay, key: str) -> None:
     if key == "m1":
         overlay._rt.controller.seek_relative(-1)
-    elif key == "m10":
-        overlay._rt.controller.seek_relative(-10)
     elif key == "center":
         overlay._rt.controller.toggle_pause()
-    elif key == "p10":
-        overlay._rt.controller.seek_relative(10)
     elif key == "p1":
         overlay._rt.controller.seek_relative(1)
     elif key == "prev_ep":

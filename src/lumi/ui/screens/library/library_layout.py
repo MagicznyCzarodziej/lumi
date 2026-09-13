@@ -13,6 +13,7 @@ from lumi.ui.components.list_entry import NameDisplayStrategy
 from lumi.ui.components.poster_widget import PosterWidget
 from lumi.ui.components.sidebar import Sidebar
 from lumi.ui.components.skeleton_overlay import SkeletonOverlay
+from lumi.ui.components.library_status_bar import LibraryStatusBar
 from lumi.ui.components.top_bar import TopBar
 from lumi.ui.theme.spacing import (
     ALPHABET_WRAPPER_LEFT_MARGIN,
@@ -40,6 +41,7 @@ class LibraryLayout(QWidget):
         )
         self.entries_skeleton = SkeletonOverlay(compact=True, parent=self.entries)
         self.sidebar = Sidebar(self)
+        self.status_bar = LibraryStatusBar(self)
         self.empty_label = QLabel("No entries match the current filters.")
         self.empty_label.setObjectName("emptyLabel")
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -84,6 +86,12 @@ class LibraryLayout(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         root.addWidget(content)
+
+    def position_status_bar(self) -> None:
+        bar_h = self.status_bar.height()
+        self.status_bar.setGeometry(0, self.height() - bar_h, self.width(), bar_h)
+        if self.status_bar.isVisible():
+            self.status_bar.raise_()
 
     def sync_skeleton_geometry(self) -> None:
         self.poster_skeleton.setGeometry(self.poster.rect())

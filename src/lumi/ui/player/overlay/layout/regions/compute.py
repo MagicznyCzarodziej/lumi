@@ -62,12 +62,12 @@ def compute_layout(
             # SCRUB view shows only the timeline — no cross or corner hints.
             hit_regions.update(cross)
             hit_regions.update(hints)
-        # Taller hit target than the painted bar for easier scrubbing.
+        # Taller hit target above the thin bottom bar for easier scrubbing.
         hit_regions["seek"] = seek_inner.adjusted(
             0,
-            -metrics.btn_sm // 3,
+            -(elapsed_rect.height() + max(8, metrics.gap)),
             0,
-            metrics.btn_sm // 3,
+            0,
         )
     elif view == View.TRACKS:
         tracks = layout_track_panel(
