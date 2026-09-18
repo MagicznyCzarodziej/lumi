@@ -19,14 +19,8 @@ _WORD_WRAP_FLAGS = (
 
 def ink_single_line_height(metrics: QFontMetrics, text: str) -> int:
     sample = text or "Hg"
-    return (
-        max(
-            metrics.boundingRect(sample).height(),
-            metrics.tightBoundingRect(sample).height(),
-            metrics.ascent() + metrics.descent(),
-        )
-        + TEXT_INK_PAD
-    )
+    ink = max(metrics.boundingRect(sample).height(), metrics.ascent() + metrics.descent())
+    return ink + TEXT_INK_PAD
 
 
 def ink_text_width(metrics: QFontMetrics, text: str) -> int:
@@ -45,6 +39,4 @@ def ink_wrapped_text_height(text: str, font: QFont, width: int) -> int:
     if metrics.horizontalAdvance(text) <= constraint:
         return ink_single_line_height(metrics, text)
     bounds = metrics.boundingRect(0, 0, constraint, 10_000, _WORD_WRAP_FLAGS, text)
-    line_step = max(1, metrics.lineSpacing())
-    lines = max(1, (bounds.height() + line_step - 1) // line_step)
-    return bounds.height() + TEXT_INK_PAD * lines
+    return bounds.height() + TEXT_INK_PAD
