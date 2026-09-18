@@ -41,6 +41,3 @@ class LibraryStatusBar(QWidget):
             text = f"Building library… {completed}/{total}"
         self._label.setText(text)
         self.show()
-        parent = self.parentWidget()
-        if parent is not None and hasattr(parent, "position_status_bar"):
-            parent.position_status_bar()

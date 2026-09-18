@@ -20,6 +20,7 @@ from lumi.ui.theme.spacing import (
     ALPHABET_WRAPPER_WIDTH,
     LIST_LAYOUT_STRETCH,
     LIST_OUTER_MARGINS,
+    LIST_VIEWPORT_MARGINS,
     POSTER_LAYOUT_STRETCH,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
@@ -35,10 +36,12 @@ class LibraryLayout(QWidget):
         self.poster_skeleton = SkeletonOverlay(parent=self.poster)
         self.alphabet = AlphabetColumn()
         self.top_bar = TopBar()
+        left, top, right, _bottom = LIST_VIEWPORT_MARGINS
         self.entries = EntriesList(
             name_display_strategy=NameDisplayStrategy.LIBRARY,
             escape_clears_search=True,
         )
+        self.entries.setViewportMargins(left, top, right, 0)
         self.entries_skeleton = SkeletonOverlay(compact=True, parent=self.entries)
         self.sidebar = Sidebar(self)
         self.status_bar = LibraryStatusBar(self)
@@ -85,13 +88,8 @@ class LibraryLayout(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        root.addWidget(content)
-
-    def position_status_bar(self) -> None:
-        bar_h = self.status_bar.height()
-        self.status_bar.setGeometry(0, self.height() - bar_h, self.width(), bar_h)
-        if self.status_bar.isVisible():
-            self.status_bar.raise_()
+        root.addWidget(content, stretch=1)
+        root.addWidget(self.status_bar)
 
     def sync_skeleton_geometry(self) -> None:
         self.poster_skeleton.setGeometry(self.poster.rect())

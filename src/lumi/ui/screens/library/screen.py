@@ -49,7 +49,7 @@ class LibraryScreen(NavigableScreen):
         self._layout = LibraryLayout()
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.addWidget(self._layout)
+        root.addWidget(self._layout, stretch=1)
 
         self._layout.top_bar.filter_changed.connect(self._on_filter_changed)
         self._layout.top_bar.search_changed.connect(self._on_search_changed)
@@ -143,7 +143,6 @@ class LibraryScreen(NavigableScreen):
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         self._layout.sync_skeleton_geometry()
-        self._layout.position_status_bar()
         self._layout.position_sidebar_drawer()
 
     def _request_rebuild(self) -> None:
