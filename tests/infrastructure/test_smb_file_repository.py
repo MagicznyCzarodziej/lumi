@@ -6,10 +6,11 @@ import threading
 from pathlib import PurePosixPath
 from unittest.mock import MagicMock, patch
 
-from smbprotocol.exceptions import SMBResponseException
+from smbprotocol.exceptions import NoMoreFiles, SMBResponseException
+from smbprotocol.open import FileAttributes
 
 from lumi.infrastructure.smb.connection import SmbShareSession
-from lumi.infrastructure.smb.smb_file_repository import SmbFileRepository
+from lumi.infrastructure.smb.smb_file_repository import SmbFileRepository, _list_directory
 from tests.constants import MOCK_LIBRARY_ROOT
 
 
@@ -78,6 +79,51 @@ def test_each_thread_gets_its_own_smb_session() -> None:
     assert len(created) == 2
     assert len(sessions_by_thread) == 2
     assert len({id(session) for session in sessions_by_thread.values()}) == 2
+
+
+def _directory_info(name: str, *, is_directory: bool) -> MagicMock:
+    info = MagicMock()
+    info.__getitem__ = lambda _self, key: {
+        "file_name": MagicMock(get_value=lambda: name.encode("utf-16-le")),
+        "file_attributes": MagicMock(
+            get_value=lambda: FileAttributes.FILE_ATTRIBUTE_DIRECTORY if is_directory else 0
+        ),
+    }[key]
+    return info
+
+
+def test_list_directory_fetches_all_query_pages() -> None:
+    tree = MagicMock()
+    directory = MagicMock()
+    directory.query_directory.side_effect = [
+        [_directory_info("Alpha", is_directory=True)],
+        [_directory_info("Omega", is_directory=True)],
+        NoMoreFiles(),
+    ]
+
+    with patch("lumi.infrastructure.smb.smb_file_repository.Open", return_value=directory):
+        entries = _list_directory(tree, MOCK_LIBRARY_ROOT)
+
+    assert [entry.name for entry in entries] == ["Alpha", "Omega"]
+    assert directory.query_directory.call_count == 3
+
+
+def test_list_directory_continues_after_empty_continuation_page() -> None:
+    tree = MagicMock()
+    directory = MagicMock()
+
+    directory.query_directory.side_effect = [
+        [_directory_info("Alpha", is_directory=True)],
+        [],
+        [_directory_info("Omega", is_directory=True)],
+        NoMoreFiles(),
+    ]
+
+    with patch("lumi.infrastructure.smb.smb_file_repository.Open", return_value=directory):
+        entries = _list_directory(tree, MOCK_LIBRARY_ROOT)
+
+    assert [entry.name for entry in entries] == ["Alpha", "Omega"]
+    assert directory.query_directory.call_count == 4
 
 
 def test_disconnect_extra_sessions_keeps_current_thread_session() -> None:

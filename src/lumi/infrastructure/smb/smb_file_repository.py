@@ -19,6 +19,7 @@ from smbprotocol.open import (
     FilePipePrinterAccessMask,
     ImpersonationLevel,
     Open,
+    QueryDirectoryFlags,
     ShareAccess,
 )
 from smbprotocol.tree import TreeConnect
@@ -40,6 +41,7 @@ _RETRYABLE_SMB_ERRORS = (
     BrokenPipeError,
     OSError,
 )
+_STATUS_NO_MORE_FILES = 0x80000006
 
 
 class SmbFileRepository(FilesLister, FileRepository):
@@ -219,23 +221,40 @@ def _list_directory(tree: TreeConnect, directory_absolute_path: PurePosixPath) -
     )
 
     try:
-        raw = directory.query_directory("*", FileInformationClass.FILE_ID_BOTH_DIRECTORY_INFORMATION)
         entries: list[DirectoryEntry] = []
-        for info in raw:
-            name = info["file_name"].get_value().decode("utf-16-le").rstrip("\x00")
-            if name in IGNORED_NAMES:
-                continue
-            attrs = info["file_attributes"].get_value()
-            is_directory = bool(attrs & FileAttributes.FILE_ATTRIBUTE_DIRECTORY)
-            child_path = directory_absolute_path / name
-            entries.append(
-                DirectoryEntry(
-                    name=name,
-                    absolute_path=child_path,
-                    is_directory=is_directory,
-                    is_file=not is_directory,
+        flags = QueryDirectoryFlags.SMB2_RESTART_SCANS
+        while True:
+            restart_scan = flags == QueryDirectoryFlags.SMB2_RESTART_SCANS
+            try:
+                raw = directory.query_directory(
+                    "*",
+                    FileInformationClass.FILE_ID_BOTH_DIRECTORY_INFORMATION,
+                    flags=flags,
                 )
-            )
+            except SMBResponseException as exc:
+                if exc.status == _STATUS_NO_MORE_FILES:
+                    break
+                raise
+            flags = 0
+            if not raw:
+                if restart_scan:
+                    break
+                continue
+            for info in raw:
+                name = info["file_name"].get_value().decode("utf-16-le").rstrip("\x00")
+                if name in IGNORED_NAMES:
+                    continue
+                attrs = info["file_attributes"].get_value()
+                is_directory = bool(attrs & FileAttributes.FILE_ATTRIBUTE_DIRECTORY)
+                child_path = directory_absolute_path / name
+                entries.append(
+                    DirectoryEntry(
+                        name=name,
+                        absolute_path=child_path,
+                        is_directory=is_directory,
+                        is_file=not is_directory,
+                    )
+                )
         return entries
     finally:
         directory.close()
