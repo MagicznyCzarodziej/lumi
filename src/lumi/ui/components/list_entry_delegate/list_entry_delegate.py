@@ -17,9 +17,15 @@ from lumi.ui.theme.spacing import (
     LIST_ROW_MARGINS,
     LIST_ROW_SPACING,
 )
+from lumi.ui.theme.text_metrics import ink_wrapped_text_height
 from lumi.ui.theme.typography import FONT_SIZE_COUNT, FONT_SIZE_LIST, FONT_SIZE_LIST_ALT
 
-_TEXT_FLAGS = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap
+_TEXT_FLAGS = (
+    Qt.AlignmentFlag.AlignLeft
+    | Qt.AlignmentFlag.AlignTop
+    | Qt.TextFlag.TextWordWrap
+    | Qt.TextFlag.TextDontClip
+)
 
 
 def _title_font() -> QFont:
@@ -34,22 +40,8 @@ def _alt_font() -> QFont:
     return font
 
 
-_DESCENDER_PAD = 2
-
-
-def _single_line_height(metrics: QFontMetrics, text: str) -> int:
-    return metrics.boundingRect(text).height() + _DESCENDER_PAD
-
-
 def _wrapped_text_height(text: str, font: QFont, width: int) -> int:
-    if not text:
-        return 0
-    metrics = QFontMetrics(font)
-    constraint = max(1, width)
-    if metrics.horizontalAdvance(text) <= constraint:
-        return _single_line_height(metrics, text)
-    bounds = metrics.boundingRect(0, 0, constraint, 10_000, int(_TEXT_FLAGS), text)
-    return bounds.height() + _DESCENDER_PAD
+    return ink_wrapped_text_height(text, font, width)
 
 
 def _draw_wrapped_text(

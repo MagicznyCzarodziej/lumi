@@ -40,7 +40,7 @@ def test_entries_list_keeps_focus_a_few_rows_from_top(qtbot) -> None:
     focus_rect = entries.visualItemRect(entries.item(focus_row))
     anchor_rect = entries.visualItemRect(entries.item(focus_row - _ROWS_FROM_TOP))
 
-    assert focus_rect.top() < entries.viewport().height() * 0.6
+    assert anchor_rect.top() < entries.viewport().height() // 3
     assert focus_rect.top() > anchor_rect.top()
 
     entries.scroll_to_row(15)

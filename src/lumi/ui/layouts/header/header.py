@@ -20,6 +20,7 @@ from lumi.ui.theme.spacing import (
     SPACE_SM,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
+from lumi.ui.theme.text_metrics import ink_single_line_height, ink_text_width
 from lumi.ui.theme.typography import FONT_SIZE_SM
 
 
@@ -45,9 +46,10 @@ class _TagChip(QWidget):
 
     def sizeHint(self) -> QSize:
         metrics = QFontMetrics(self._font())
-        text_width = metrics.horizontalAdvance(self._tag)
+        text_width = ink_text_width(metrics, self._tag)
         width = self._PAD_LEFT + self._ICON_SIZE + self._TEXT_PAD_LEFT + text_width + self._PAD_RIGHT
-        inner_height = max(self._ICON_SIZE, metrics.height() + self._TEXT_PAD_V * 2)
+        text_block = ink_single_line_height(metrics, self._tag) + self._TEXT_PAD_V * 2
+        inner_height = max(self._ICON_SIZE, text_block)
         height = inner_height + self._ROW_MARGIN_V * 2
         return QSize(width, height)
 
@@ -57,7 +59,8 @@ class _TagChip(QWidget):
     def paintEvent(self, event) -> None:
         del event
         metrics = QFontMetrics(self._font())
-        inner_height = max(self._ICON_SIZE, metrics.height() + self._TEXT_PAD_V * 2)
+        text_block = ink_single_line_height(metrics, self._tag) + self._TEXT_PAD_V * 2
+        inner_height = max(self._ICON_SIZE, text_block)
         pill_y = self._ROW_MARGIN_V
         pill_rect = QRectF(0, pill_y, self.width(), inner_height)
         radius = inner_height / 2
@@ -79,7 +82,9 @@ class _TagChip(QWidget):
         painter.setPen(QColor(WHITE))
         painter.drawText(
             text_rect,
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+            Qt.AlignmentFlag.AlignLeft
+            | Qt.AlignmentFlag.AlignVCenter
+            | Qt.TextFlag.TextDontClip,
             self._tag,
         )
         painter.end()
