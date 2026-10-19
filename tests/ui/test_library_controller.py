@@ -76,7 +76,11 @@ def test_matches_search_query_matches_title_and_tags() -> None:
 def test_build_library_ui_state_filters_by_search() -> None:
     QApplication.instance() or QApplication([])
     container = _load_mock_container()
-    context = ScreenContext(container.library_repository, MockVideoPlayer())
+    context = ScreenContext(
+        container.library_repository,
+        MockVideoPlayer(),
+        container.watch_history,
+    )
     stack = QStackedWidget()
     router = Router(stack, context)
     state = build_library_ui_state(
@@ -137,7 +141,11 @@ def test_active_letter_maps_digits_to_hash() -> None:
 def test_standalone_film_click_plays_video(monkeypatch) -> None:
     QApplication.instance() or QApplication([])
     container = _load_mock_container()
-    context = ScreenContext(container.library_repository, MockVideoPlayer())
+    context = ScreenContext(
+        container.library_repository,
+        MockVideoPlayer(),
+        container.watch_history,
+    )
     stack = QStackedWidget()
     router = Router(stack, context)
     played: list[PurePosixPath] = []

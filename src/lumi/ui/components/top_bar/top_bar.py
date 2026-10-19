@@ -17,7 +17,7 @@ from lumi.ui.theme.colors import BLACK, TEXT_PRIMARY, TOPBAR_INACTIVE, WHITE
 from lumi.ui.theme.spacing import (
     CORNER_RADIUS_SM,
     SPACE_SM,
-    TOPBAR_CONTENT_INSET,
+    TOPBAR_CONTENT_MARGINS,
     TOPBAR_FILTER_PAD_H,
     TOPBAR_FILTER_PAD_V,
 )
@@ -155,12 +155,7 @@ class TopBar(QWidget):
         controls.addWidget(self._rebuild_button)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(
-            TOPBAR_CONTENT_INSET,
-            TOPBAR_CONTENT_INSET,
-            TOPBAR_CONTENT_INSET,
-            TOPBAR_CONTENT_INSET,
-        )
+        layout.setContentsMargins(*TOPBAR_CONTENT_MARGINS)
         layout.setSpacing(SPACE_SM)
         layout.addLayout(controls)
         layout.addWidget(self._tag_ribbon)
@@ -237,6 +232,8 @@ class TopBar(QWidget):
             if is_escape_key(key_event.key()):
                 if self._search.text():
                     self._search.clear()
+                else:
+                    self.navigate_down.emit()
                 return True
             return super().eventFilter(watched, event)
 

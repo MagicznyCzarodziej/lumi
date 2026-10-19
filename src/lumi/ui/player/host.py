@@ -19,6 +19,7 @@ from lumi.domain.power.sleep_inhibitor import SleepInhibitor
 from lumi.domain.subtitles.cache import SubtitleCache
 from lumi.domain.subtitles.provider import SubtitleDownloadProvider
 from lumi.domain.subtitles.saved_state import NapiSavedStateStore
+from lumi.domain.watch_history import WatchHistory
 from lumi.ui.player.render.video_area import VideoArea
 
 
@@ -46,6 +47,7 @@ class PlayerHost(QWidget):
         napi_language: str = "ENG",
         sleep_inhibitor: SleepInhibitor | None = None,
         library_repository: LibraryRepository | None = None,
+        watch_history: WatchHistory | None = None,
     ) -> None:
         super().__init__(parent)
         self.setVisible(False)
@@ -68,6 +70,7 @@ class PlayerHost(QWidget):
             napi_enabled=napi_enabled,
             napi_language=napi_language,
             library_repository=library_repository,
+            watch_history=watch_history,
             parent=self,
         )
 

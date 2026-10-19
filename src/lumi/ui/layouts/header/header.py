@@ -17,6 +17,7 @@ from lumi.ui.theme.spacing import (
     HEADER_TAG_ROW_MARGIN_V,
     HEADER_TAG_TEXT_PAD_LEFT,
     HEADER_TAG_TEXT_PAD_V,
+    LIST_ROW_LEFT_INSET,
     SPACE_SM,
     TAG_CHIP_GAP,
 )
@@ -121,7 +122,7 @@ class Header(QWidget):
         text_block_layout.addWidget(self._tags_container)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(LIST_ROW_LEFT_INSET, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(text_block)
 

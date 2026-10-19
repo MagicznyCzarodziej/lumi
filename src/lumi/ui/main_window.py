@@ -12,7 +12,6 @@ from lumi.ui.components.keyboard_helpers import is_back_key
 from lumi.config.settings import Settings
 from lumi.container import Container
 from lumi.domain.video_player import VideoPlayer
-from lumi.infrastructure.watch_progress import load_recent_watch_records
 from lumi.infrastructure.mock.mock_video_player import MockVideoPlayer
 from lumi.ui.context import ScreenContext
 from lumi.ui.navigation.destinations import (
@@ -90,12 +89,14 @@ class MainWindow(QMainWindow):
                 napi_language=settings.napiprojekt.language,
                 sleep_inhibitor=create_sleep_inhibitor(),
                 library_repository=container.library_repository,
+                watch_history=container.watch_history,
             )
             self._player_host.hide()
             playback = EmbeddedVideoPlayer(container.playback_uri_resolver, self._player_host)
         self._screen_context = ScreenContext(
             library_repository=container.library_repository,
             video_player=SafeVideoPlayer(playback, self._show_playback_error),
+            watch_history=container.watch_history,
         )
 
         self._router = Router(self._stack, self._screen_context)
@@ -124,7 +125,7 @@ class MainWindow(QMainWindow):
             RecentlyWatchedDestination,
             lambda: RecentlyWatchedScreen(
                 self._router,
-                records_loader=load_recent_watch_records,
+                poster_loader=loader,
             ),
         )
         self._router.register(SeriesDestination, lambda: SeriesScreen(self._router, poster_loader=loader))

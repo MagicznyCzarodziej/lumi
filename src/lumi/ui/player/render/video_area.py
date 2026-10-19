@@ -18,11 +18,7 @@ from lumi.domain.playback import PlaybackUriResolver
 from lumi.domain.subtitles.cache import SubtitleCache
 from lumi.domain.subtitles.provider import SubtitleDownloadProvider
 from lumi.domain.subtitles.saved_state import NapiSavedStateStore
-from lumi.infrastructure.watch_progress import (
-    load_watch_position,
-    save_recent_watch_record,
-    save_watch_position,
-)
+from lumi.domain.watch_history import WatchHistory
 from lumi.ui.player.controller.controller import MpvController
 from lumi.ui.player.overlay.deps import OverlayDeps
 from lumi.ui.player.overlay.input_router import is_dismiss_key
@@ -49,6 +45,7 @@ class VideoArea(QWidget):
         napi_language: str = "ENG",
         on_close: Callable[[], None] | None = None,
         library_repository: LibraryRepository | None = None,
+        watch_history: WatchHistory | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -90,6 +87,7 @@ class VideoArea(QWidget):
             Qt.ConnectionType.QueuedConnection,
         )
         self._library_path: PurePosixPath | None = None
+        self._watch_history = watch_history
 
     def _play_library_path(self, path: PurePosixPath) -> None:
         resolver = self._playback_uri_resolver
@@ -117,7 +115,8 @@ class VideoArea(QWidget):
         if self._library_path is not None:
             self._persist_playback_state()
         self._library_path = library_path
-        start_at = load_watch_position(library_path)
+        history = self._watch_history
+        start_at = None if history is None else history.resume_position(library_path)
         self.mpv_widget.show()
         self.mpv_widget.raise_()
         self.overlay.set_media_info(
@@ -157,12 +156,10 @@ class VideoArea(QWidget):
             return
         duration = self.controller.duration()
         position = self.controller.time_pos()
-        save_watch_position(
-            library_path,
-            position,
-            duration=duration if duration > 0 else None,
-        )
-        save_recent_watch_record(
+        history = self._watch_history
+        if history is None:
+            return
+        history.record_playback(
             library_path,
             position,
             duration=duration if duration > 0 else None,

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QFontMetrics, QPaintEvent, QPainter
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QVBoxLayout, QWidget
+from lumi.ui.components.poster_widget import PosterWidget
+from lumi.ui.poster_loader import PosterLoader
 
 from lumi.ui.screens.recently_watched.controller import RecentWatchAction, RecentWatchRowUiModel
 from lumi.ui.theme.colors import LIST_SELECTION_ACCENT, LIST_SELECTION_TINT
@@ -58,15 +60,13 @@ class RecentWatchRow(QWidget):
         self.setFixedHeight(RECENT_WATCH_THUMBNAIL_HEIGHT)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        self._thumbnail = QFrame()
+        self._thumbnail = PosterWidget()
         self._thumbnail.setObjectName("thumbnail")
         self._thumbnail.setFixedSize(
             RECENT_WATCH_THUMBNAIL_WIDTH,
             RECENT_WATCH_THUMBNAIL_HEIGHT,
         )
-        self._thumbnail.setToolTip(
-            model.poster_path.as_posix() if model.poster_path is not None else ""
-        )
+        self._thumbnail.set_poster_path(model.poster_path, immediate=True)
 
         self._playable = _ElidedLabel(model.playable_name)
         self._playable.setObjectName("playableName")
@@ -131,6 +131,17 @@ class RecentWatchRow(QWidget):
     @property
     def selected_action(self) -> RecentWatchAction:
         return self._model.actions[self._selected_action_index]
+
+    @property
+    def thumbnail_presentation_state(self) -> str:
+        return self._thumbnail.presentation_state
+
+    @property
+    def thumbnail_size(self) -> QSize:
+        return self._thumbnail.size()
+
+    def bind_poster_loader(self, loader: PosterLoader) -> None:
+        self._thumbnail.bind_loader(loader)
 
     def set_row_focused(self, focused: bool) -> None:
         if self._is_row_focused == focused:

@@ -34,7 +34,7 @@ def test_state_orders_resolved_records_and_resumes_selected_item() -> None:
     player = _RecordingPlayer()
     router = Router(
         QStackedWidget(),
-        ScreenContext(container.library_repository, player),
+        ScreenContext(container.library_repository, player, container.watch_history),
     )
     records = [
         RecentWatchRecord(

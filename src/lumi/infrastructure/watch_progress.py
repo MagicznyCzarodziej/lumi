@@ -13,29 +13,11 @@ from lumi.infrastructure.paths import recent_watch_path, watch_progress_path
 
 logger = logging.getLogger(__name__)
 
-RESUME_END_THRESHOLD_SECONDS = 30.0
-RESUME_END_THRESHOLD_FRACTION = 0.95
-MIN_SAVE_POSITION_SECONDS = 3.0
 RECENT_WATCH_SCHEMA_VERSION = 1
 
 
 def _path_key(library_path: PurePosixPath) -> str:
     return library_path.as_posix()
-
-
-def _is_near_end(position: float, duration: float | None) -> bool:
-    if duration is not None and duration > 0:
-        if position >= duration - RESUME_END_THRESHOLD_SECONDS:
-            return True
-        if position >= duration * RESUME_END_THRESHOLD_FRACTION:
-            return True
-    return False
-
-
-def _should_persist(position: float, duration: float | None) -> bool:
-    if position < MIN_SAVE_POSITION_SECONDS:
-        return False
-    return not _is_near_end(position, duration)
 
 
 def load_watch_position(
@@ -68,9 +50,7 @@ def load_watch_position(
     except (TypeError, ValueError):
         return None
 
-    if position < MIN_SAVE_POSITION_SECONDS:
-        return None
-    if _is_near_end(position, duration):
+    if not is_resumable_position(position, duration):
         return None
     return position
 
@@ -97,7 +77,7 @@ def save_watch_position(
         logger.warning("Could not read watch progress from %s: %s", progress_path, exc)
         data = {}
 
-    if not _should_persist(position, duration):
+    if not is_resumable_position(position, duration):
         if key in data:
             del data[key]
     else:

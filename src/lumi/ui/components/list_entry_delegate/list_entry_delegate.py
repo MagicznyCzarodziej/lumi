@@ -225,6 +225,11 @@ class ListEntryDelegate(QStyledItemDelegate):
         self._pop_timer.setInterval(FOCUS_POP_FRAME_INTERVAL_MS)
         self._pop_timer.timeout.connect(self._update_pop)
 
+    @property
+    def content_margins(self) -> tuple[int, int, int, int]:
+        """Insets from a row edge to its text and type-indicator content."""
+        return self._content_margins
+
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index) -> None:
         model = index.data(Qt.ItemDataRole.UserRole)
         if not isinstance(model, ListEntryUiModel):

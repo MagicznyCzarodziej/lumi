@@ -47,6 +47,10 @@ def test_resolve_recent_watch_records_uses_current_library_and_recency() -> None
         PurePosixPath("Band of Brothers/Season 1/S01E02.mkv"),
         PurePosixPath("Alien/Alien.mkv"),
     ]
+    assert [
+        (item.playable_name.name, item.episodes_group.id.id if item.episodes_group else None)
+        for item in resolved
+    ] == [("S01E02", "bob-s1"), ("Alien", None)]
 
 
 def test_resolve_recent_watch_records_ignores_completed_records() -> None:

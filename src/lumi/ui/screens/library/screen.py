@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QVBoxLayout
 
 from lumi.domain.library.models import LibraryEntry
 from lumi.ui.context import ScreenContext
-from lumi.ui.navigation.destinations import Destination
+from lumi.ui.navigation.destinations import Destination, RECENTLY_WATCHED
 from lumi.ui.navigation.navigable_screen import NavigableScreen
 from lumi.ui.navigation.router import Router
 from lumi.ui.poster_loader import PosterLoader
@@ -58,12 +58,13 @@ class LibraryScreen(NavigableScreen):
         self._layout.top_bar.filter_changed.connect(self._on_filter_changed)
         self._layout.top_bar.search_changed.connect(self._on_search_changed)
         self._layout.top_bar.tag_filter_changed.connect(self._on_tag_filter_changed)
-        self._layout.top_bar.recent_requested.connect(self.recent_requested.emit)
+        self._layout.top_bar.recent_requested.connect(self._show_recently_watched)
         self._layout.top_bar.rebuild_requested.connect(self._request_rebuild)
         self._layout.top_bar.navigate_down.connect(self._focus_current_entry)
         self._layout.alphabet.letter_activated.connect(self._on_letter_activated)
         self._layout.alphabet.exit_to_entries.connect(self._leave_alphabet_to_entries)
         self._layout.entries.focus_left_requested.connect(self._leave_entries_to_alphabet)
+        self._layout.entries.focus_right_requested.connect(self._layout.top_bar.focus_search)
         self._layout.entries.focus_up_requested.connect(self._layout.top_bar.focus_tags_or_first_filter)
         self._layout.entries.type_to_search.connect(self._on_type_to_search)
         self._layout.entries.clear_search_requested.connect(self._on_clear_search_requested)
@@ -151,6 +152,10 @@ class LibraryScreen(NavigableScreen):
         if self._on_rebuild_library is not None:
             self._on_rebuild_library()
 
+    def _show_recently_watched(self) -> None:
+        self.recent_requested.emit()
+        self._router.push(RECENTLY_WATCHED)
+
     def _refresh_entries_from_repository(self) -> None:
         if self._context is None:
             return
@@ -237,6 +242,7 @@ class LibraryScreen(NavigableScreen):
 
     def _on_type_to_search(self, char: str) -> None:
         self._layout.top_bar.append_search_character(char)
+        self._layout.top_bar.focus_search()
 
     def _on_clear_search_requested(self) -> None:
         if not self._search_query:

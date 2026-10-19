@@ -28,7 +28,11 @@ def test_build_series_state_from_mock_library() -> None:
     container.library_repository.initialize(MOCK_LIBRARY_ROOT)
 
     stack = QStackedWidget()
-    context = ScreenContext(container.library_repository, MockVideoPlayer())
+    context = ScreenContext(
+        container.library_repository,
+        MockVideoPlayer(),
+        container.watch_history,
+    )
     router = Router(stack, context)
     router.register(SeriesDestination, _StubScreen)
     router.register(EpisodesGroupDestination, _StubScreen)

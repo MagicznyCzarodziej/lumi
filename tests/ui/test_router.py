@@ -23,7 +23,11 @@ def test_router_push_and_pop(qtbot) -> None:
     app = QApplication.instance() or QApplication([])
     stack = QStackedWidget()
     container = build_container(Settings(mode="mock"))
-    context = ScreenContext(container.library_repository, MockVideoPlayer())
+    context = ScreenContext(
+        container.library_repository,
+        MockVideoPlayer(),
+        container.watch_history,
+    )
     router = Router(stack, context)
     router.register(type(LIBRARY), lambda: _StubScreen())
     router.register(SeriesDestination, lambda: _StubScreen())
@@ -44,7 +48,11 @@ def test_router_reset_to_clears_detail_history(qtbot) -> None:
     app = QApplication.instance() or QApplication([])
     stack = QStackedWidget()
     container = build_container(Settings(mode="mock"))
-    context = ScreenContext(container.library_repository, MockVideoPlayer())
+    context = ScreenContext(
+        container.library_repository,
+        MockVideoPlayer(),
+        container.watch_history,
+    )
     router = Router(stack, context)
     router.register(type(LIBRARY), lambda: _StubScreen())
     router.register(SeriesDestination, lambda: _StubScreen())

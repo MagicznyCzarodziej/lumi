@@ -57,6 +57,11 @@ class PosterWidget(QWidget):
         if self._current_path is not None:
             loader.load(self._current_path)
 
+    @property
+    def presentation_state(self) -> str:
+        """Current visual state, exposed for composed poster surfaces."""
+        return self._state
+
     def set_poster_path(self, poster_path: PurePosixPath | None, *, immediate: bool = False) -> None:
         self._pending_path = poster_path
         if immediate or poster_path is None:

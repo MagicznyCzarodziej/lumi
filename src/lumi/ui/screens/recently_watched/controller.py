@@ -7,19 +7,11 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import PurePosixPath
 
-from lumi.domain.library.episode_navigation import paths_refer_to_same_file
 from lumi.domain.library.models import (
-    Episode,
-    EpisodesGroup,
-    FilmSeries,
     Library,
     LibraryEntry,
     MediaGrouping,
-    MediaGroupingFilm,
-    Name,
     Series,
-    StandaloneFilm,
-    VideoFile,
 )
 from lumi.domain.recent_watch import RecentWatchRecord, ResolvedRecentWatch, resolve_recent_watch_records
 from lumi.domain.video_player import VideoPlayer
@@ -83,7 +75,6 @@ def _row_for_recent_watch(
     router: Router,
     video_player: VideoPlayer,
 ) -> RecentWatchRowUiModel:
-    playable = _playable_name(item)
     actions = [RecentWatchAction.RESUME]
     handlers: dict[RecentWatchAction, Callable[[], None]] = {
         RecentWatchAction.RESUME: lambda: video_player.play_video(item.library_path),
@@ -97,9 +88,11 @@ def _row_for_recent_watch(
     return RecentWatchRowUiModel(
         playback_path=item.library_path,
         poster_path=item.entry.root_relative_poster_path,
-        playable_name=playable.name,
+        playable_name=item.playable_name.name,
         show_name=item.entry.name.name if item.episode is not None else None,
-        alternative_name=playable.alternative_name or item.entry.name.alternative_name,
+        alternative_name=(
+            item.playable_name.alternative_name or item.entry.name.alternative_name
+        ),
         time_label=_time_label(item.position, duration),
         progress_fraction=progress,
         actions=tuple(actions),
@@ -107,76 +100,22 @@ def _row_for_recent_watch(
     )
 
 
-def _playable_name(item: ResolvedRecentWatch) -> Name:
-    if item.episode is not None:
-        return item.episode.name
-
-    entry = item.entry
-    if isinstance(entry, StandaloneFilm):
-        return entry.name
-    if isinstance(entry, FilmSeries):
-        return next(
-            (
-                film.name
-                for film in entry.films
-                if _video_files_match(film.video_files, item.library_path)
-            ),
-            entry.name,
-        )
-    if isinstance(entry, MediaGrouping):
-        return next(
-            (
-                film.name
-                for film in entry.entries
-                if isinstance(film, MediaGroupingFilm)
-                and _video_files_match(film.video_files, item.library_path)
-            ),
-            entry.name,
-        )
-    return entry.name
-
-
-def _video_files_match(video_files: Iterable[VideoFile], path: PurePosixPath) -> bool:
-    return any(paths_refer_to_same_file(video_file.absolute_path, path) for video_file in video_files)
-
-
 def _episodes_destination(
     item: ResolvedRecentWatch,
 ) -> EpisodesGroupDestination | MediaGroupingEpisodesGroupDestination | None:
-    episode = item.episode
-    if episode is None:
+    group = item.episodes_group
+    if group is None:
         return None
 
     entry = item.entry
     if isinstance(entry, Series):
-        group = _episodes_group_containing(entry.seasons, episode)
-        if group is not None:
-            return EpisodesGroupDestination(episodes_group_id=group.id.id)
+        return EpisodesGroupDestination(episodes_group_id=group.id.id)
     if isinstance(entry, MediaGrouping):
-        group = _episodes_group_containing(
-            (child for child in entry.entries if isinstance(child, EpisodesGroup)),
-            episode,
+        return MediaGroupingEpisodesGroupDestination(
+            media_grouping_id=entry.id.id,
+            episodes_group_id=group.id.id,
         )
-        if group is not None:
-            return MediaGroupingEpisodesGroupDestination(
-                media_grouping_id=entry.id.id,
-                episodes_group_id=group.id.id,
-            )
     return None
-
-
-def _episodes_group_containing(
-    groups: Iterable[EpisodesGroup],
-    episode: Episode,
-) -> EpisodesGroup | None:
-    return next(
-        (
-            group
-            for group in groups
-            if any(candidate.id == episode.id for candidate in group.episodes)
-        ),
-        None,
-    )
 
 
 def _time_label(position: float, duration: float | None) -> str:

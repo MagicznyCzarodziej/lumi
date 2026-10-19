@@ -24,6 +24,7 @@ from lumi.domain.poster.poster_cache import PosterCache
 from lumi.domain.subtitles.cache import SubtitleCache
 from lumi.domain.subtitles.provider import SubtitleDownloadProvider
 from lumi.domain.subtitles.saved_state import NapiSavedStateStore
+from lumi.domain.watch_history import WatchHistory
 from lumi.infrastructure.in_memory_cached_library_repository import InMemoryCachedLibraryRepository
 from lumi.infrastructure.library_cache.library_json_cache import LibraryJsonCache
 from lumi.infrastructure.mock.mock_file_repository import MockFileRepository
@@ -36,6 +37,7 @@ from lumi.infrastructure.subtitles.disk_subtitle_cache import DiskSubtitleCache
 from lumi.infrastructure.subtitles.mock_subtitle_provider import MockSubtitleDownloadProvider
 from lumi.infrastructure.subtitles.napi_client import NapiProjektClient
 from lumi.infrastructure.subtitles.napi_saved_state import JsonNapiSavedStateStore
+from lumi.infrastructure.watch_history import JsonWatchHistory
 from lumi.infrastructure.smb.smb_config_reader import SmbLumiDirectoryConfigFileReader
 from lumi.infrastructure.smb.smb_file_repository import SmbFileRepository
 from lumi.infrastructure.smb.smb_library_builder import SmbLibraryBuilder
@@ -60,6 +62,7 @@ class Container:
     subtitle_cache: SubtitleCache
     napi_saved_state: NapiSavedStateStore
     napi_provider: SubtitleDownloadProvider
+    watch_history: WatchHistory
     library_builder: LibraryBuilder | None = None
     smb_file_repository: SmbFileRepository | None = None
     smb_stream_server: SmbHttpStreamServer | None = None
@@ -89,6 +92,7 @@ def build_container(settings: Settings | None = None) -> Container:
     poster_cache: PosterCache = DiskPosterCache(poster_cache_dir(settings))
     subtitle_cache: SubtitleCache = DiskSubtitleCache(subtitle_cache_dir(settings))
     napi_saved_state = JsonNapiSavedStateStore()
+    watch_history: WatchHistory = JsonWatchHistory()
 
     smb_file_repository: SmbFileRepository | None = None
     smb_stream_server: SmbHttpStreamServer | None = None
@@ -153,6 +157,7 @@ def build_container(settings: Settings | None = None) -> Container:
         subtitle_cache=subtitle_cache,
         napi_saved_state=napi_saved_state,
         napi_provider=napi_provider,
+        watch_history=watch_history,
         library_builder=library_builder,
         smb_file_repository=smb_file_repository,
         smb_stream_server=smb_stream_server,

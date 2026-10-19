@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import PurePosixPath
 
 from lumi.domain.recent_watch import RecentWatchRecord
+from lumi.infrastructure.watch_history import JsonWatchHistory
 from lumi.infrastructure.watch_progress import (
     load_recent_watch_records,
     load_watch_position,
@@ -172,3 +173,23 @@ def test_load_recent_watch_records_ignores_malformed_and_completed_records(tmp_p
             watched_at=datetime(2026, 10, 19, 21, 16, tzinfo=UTC),
         )
     ]
+
+
+def test_watch_history_port_records_resume_and_recent_entry_with_shared_policy(tmp_path) -> None:
+    progress_path = tmp_path / "watch_progress.json"
+    recent_path = tmp_path / "recent_watch.json"
+    library_path = PurePosixPath("Alien/Alien.mkv")
+    history = JsonWatchHistory(
+        progress_path=progress_path,
+        recent_path=recent_path,
+    )
+
+    history.record_playback(library_path, 120.0, duration=7200.0)
+
+    assert history.resume_position(library_path, duration=7200.0) == 120.0
+    assert [record.library_path for record in history.recent_entries()] == [library_path]
+
+    history.record_playback(library_path, 7190.0, duration=7200.0)
+
+    assert history.resume_position(library_path, duration=7200.0) is None
+    assert history.recent_entries() == []

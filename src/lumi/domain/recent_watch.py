@@ -17,6 +17,7 @@ from lumi.domain.library.models import (
     LibraryEntry,
     MediaGrouping,
     MediaGroupingFilm,
+    Name,
     Series,
     StandaloneFilm,
     VideoFile,
@@ -57,7 +58,9 @@ class ResolvedRecentWatch:
     position: float
     duration: float | None
     watched_at: datetime
+    playable_name: Name
     episode: Episode | None = None
+    episodes_group: EpisodesGroup | None = None
 
 
 def is_resumable_position(position: float, duration: float | None) -> bool:
@@ -94,28 +97,40 @@ def _resolve_record(
     entries: Iterable[LibraryEntry],
 ) -> ResolvedRecentWatch | None:
     for entry in entries:
-        if isinstance(entry, StandaloneFilm) and _matches_video_files(
+        if isinstance(entry, StandaloneFilm) and video_files_refer_to_path(
             entry.video_files, record.library_path
         ):
-            return _resolved_record(record, entry)
+            return _resolved_record(record, entry, playable_name=entry.name)
         if isinstance(entry, FilmSeries):
             for film in entry.films:
-                if _matches_video_files(film.video_files, record.library_path):
-                    return _resolved_record(record, entry)
+                if video_files_refer_to_path(film.video_files, record.library_path):
+                    return _resolved_record(record, entry, playable_name=film.name)
         if isinstance(entry, Series):
             for season in entry.seasons:
                 if match := _matching_episode(season, record.library_path):
-                    return _resolved_record(record, entry, episode=match)
+                    return _resolved_record(
+                        record,
+                        entry,
+                        playable_name=match.name,
+                        episode=match,
+                        episodes_group=season,
+                    )
         if isinstance(entry, MediaGrouping):
             for child in entry.entries:
-                if isinstance(child, MediaGroupingFilm) and _matches_video_files(
+                if isinstance(child, MediaGroupingFilm) and video_files_refer_to_path(
                     child.video_files, record.library_path
                 ):
-                    return _resolved_record(record, entry)
+                    return _resolved_record(record, entry, playable_name=child.name)
                 if isinstance(child, EpisodesGroup) and (
                     match := _matching_episode(child, record.library_path)
                 ):
-                    return _resolved_record(record, entry, episode=match)
+                    return _resolved_record(
+                        record,
+                        entry,
+                        playable_name=match.name,
+                        episode=match,
+                        episodes_group=child,
+                    )
     return None
 
 
@@ -123,7 +138,9 @@ def _resolved_record(
     record: RecentWatchRecord,
     entry: LibraryEntry,
     *,
+    playable_name: Name,
     episode: Episode | None = None,
+    episodes_group: EpisodesGroup | None = None,
 ) -> ResolvedRecentWatch:
     return ResolvedRecentWatch(
         entry=entry,
@@ -131,11 +148,13 @@ def _resolved_record(
         position=record.position,
         duration=record.duration,
         watched_at=record.watched_at,
+        playable_name=playable_name,
         episode=episode,
+        episodes_group=episodes_group,
     )
 
 
-def _matches_video_files(video_files: Iterable[VideoFile], path: PurePosixPath) -> bool:
+def video_files_refer_to_path(video_files: Iterable[VideoFile], path: PurePosixPath) -> bool:
     return any(paths_refer_to_same_file(video_file.absolute_path, path) for video_file in video_files)
 
 

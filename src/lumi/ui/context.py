@@ -6,9 +6,11 @@ from dataclasses import dataclass
 
 from lumi.domain.library.library_repository import LibraryRepository
 from lumi.domain.video_player import VideoPlayer
+from lumi.domain.watch_history import WatchHistory
 
 
 @dataclass(frozen=True)
 class ScreenContext:
     library_repository: LibraryRepository
     video_player: VideoPlayer
+    watch_history: WatchHistory

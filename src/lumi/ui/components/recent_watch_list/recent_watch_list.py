@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from lumi.ui.components.keyboard_helpers import is_escape_key
 from lumi.ui.components.recent_watch_row import RecentWatchRow
+from lumi.ui.poster_loader import PosterLoader
 from lumi.ui.screens.recently_watched.controller import RecentWatchRowUiModel
 from lumi.ui.theme.spacing import RECENT_WATCH_ROW_SPACING, RECENT_WATCH_THUMBNAIL_HEIGHT
 from lumi.ui.theme.styles import apply_widget_stylesheet
@@ -37,7 +38,13 @@ class RecentWatchList(QListWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.setSpacing(RECENT_WATCH_ROW_SPACING)
         self._rows: list[RecentWatchRow] = []
+        self._poster_loader: PosterLoader | None = None
         self.currentRowChanged.connect(lambda _row: self._sync_row_focus())
+
+    def bind_poster_loader(self, loader: PosterLoader) -> None:
+        self._poster_loader = loader
+        for row in self._rows:
+            row.bind_poster_loader(loader)
 
     def set_rows(self, rows: list[RecentWatchRowUiModel]) -> None:
         self.clear()
@@ -47,6 +54,8 @@ class RecentWatchList(QListWidget):
             item.setSizeHint(QSize(0, RECENT_WATCH_THUMBNAIL_HEIGHT))
             self.addItem(item)
             row = RecentWatchRow(model)
+            if self._poster_loader is not None:
+                row.bind_poster_loader(self._poster_loader)
             self.setItemWidget(item, row)
             self._rows.append(row)
         if rows:

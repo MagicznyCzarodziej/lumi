@@ -2,25 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout
 
-from lumi.domain.recent_watch import RecentWatchRecord
 from lumi.ui.components.recent_watch_header import RecentWatchHeader
 from lumi.ui.components.recent_watch_list import RecentWatchList
 from lumi.ui.context import ScreenContext
 from lumi.ui.navigation.destinations import Destination, LIBRARY, RecentlyWatchedDestination
 from lumi.ui.navigation.navigable_screen import NavigableScreen
 from lumi.ui.navigation.router import Router
+from lumi.ui.poster_loader import PosterLoader
 from lumi.ui.screens.recently_watched.controller import build_recently_watched_state
 from lumi.ui.theme.spacing import CONTENT_INSET, SPACE_MD
 from lumi.ui.theme.styles import apply_widget_stylesheet
-
-RecentWatchRecordsLoader = Callable[[], list[RecentWatchRecord]]
-
 
 class RecentlyWatchedScreen(NavigableScreen):
     """Displays resumable media and always returns to the Library root."""
@@ -29,16 +25,17 @@ class RecentlyWatchedScreen(NavigableScreen):
         self,
         router: Router,
         *,
-        records_loader: RecentWatchRecordsLoader,
+        poster_loader: PosterLoader | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("RecentlyWatchedScreen")
         apply_widget_stylesheet(self, Path(__file__).with_suffix(".qss"))
         self._router = router
-        self._records_loader = records_loader
         self._header = RecentWatchHeader()
         self._rows = RecentWatchList()
+        if poster_loader is not None:
+            self._rows.bind_poster_loader(poster_loader)
         self._empty_label = QLabel("No recently watched videos.")
         self._empty_label.setObjectName("emptyLabel")
         self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -67,7 +64,7 @@ class RecentlyWatchedScreen(NavigableScreen):
         if not isinstance(destination, RecentlyWatchedDestination):
             return
         state = build_recently_watched_state(
-            self._records_loader(),
+            context.watch_history.recent_entries(),
             context.library_repository.get_top_level_entries(),
             self._router,
             context.video_player,
