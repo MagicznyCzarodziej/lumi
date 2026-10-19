@@ -11,7 +11,6 @@ from lumi.ui.components.alphabet_column import AlphabetColumn
 from lumi.ui.components.entries_list import EntriesList
 from lumi.ui.components.list_entry import NameDisplayStrategy
 from lumi.ui.components.poster_widget import PosterWidget
-from lumi.ui.components.sidebar import Sidebar
 from lumi.ui.components.skeleton_overlay import SkeletonOverlay
 from lumi.ui.components.library_status_bar import LibraryStatusBar
 from lumi.ui.components.top_bar import TopBar
@@ -43,7 +42,6 @@ class LibraryLayout(QWidget):
         )
         self.entries.setViewportMargins(left, top, right, 0)
         self.entries_skeleton = SkeletonOverlay(compact=True, parent=self.entries)
-        self.sidebar = Sidebar(self)
         self.status_bar = LibraryStatusBar(self)
         self.empty_label = QLabel("No entries match the current filters.")
         self.empty_label.setObjectName("emptyLabel")
@@ -56,21 +54,21 @@ class LibraryLayout(QWidget):
         content_layout.setSpacing(0)
         content_layout.addWidget(self.poster, stretch=POSTER_LAYOUT_STRETCH)
 
-        list_panel = QWidget()
-        list_panel_layout = QHBoxLayout(list_panel)
-        list_panel_layout.setContentsMargins(0, 0, 0, 0)
-        list_panel_layout.setSpacing(0)
-
-        alphabet_wrapper = QWidget()
-        alphabet_wrapper.setFixedWidth(ALPHABET_WRAPPER_WIDTH)
-        alphabet_layout = QHBoxLayout(alphabet_wrapper)
+        self.alphabet_rail = QWidget()
+        self.alphabet_rail.setObjectName("alphabetRail")
+        self.alphabet_rail.setFixedWidth(ALPHABET_WRAPPER_WIDTH)
+        alphabet_layout = QVBoxLayout(self.alphabet_rail)
         alphabet_layout.setContentsMargins(ALPHABET_WRAPPER_LEFT_MARGIN, 0, 0, 0)
         alphabet_layout.setSpacing(0)
-        alphabet_layout.addWidget(self.alphabet, alignment=Qt.AlignmentFlag.AlignVCenter)
-        list_panel_layout.addWidget(alphabet_wrapper, alignment=Qt.AlignmentFlag.AlignVCenter)
+        alphabet_layout.addWidget(
+            self.alphabet,
+            alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
+        )
+        content_layout.addWidget(self.alphabet_rail)
 
-        entries_panel = QWidget()
-        entries_layout = QVBoxLayout(entries_panel)
+        self.main_content = QWidget()
+        self.main_content.setObjectName("libraryMainContent")
+        entries_layout = QVBoxLayout(self.main_content)
         entries_layout.setContentsMargins(0, 0, 0, 0)
         entries_layout.setSpacing(0)
         entries_layout.addWidget(self.top_bar)
@@ -82,8 +80,7 @@ class LibraryLayout(QWidget):
         entries_outer_layout.addWidget(self.empty_label)
         entries_outer_layout.addWidget(self.entries, stretch=1)
         entries_layout.addWidget(entries_outer, stretch=1)
-        list_panel_layout.addWidget(entries_panel, stretch=1)
-        content_layout.addWidget(list_panel, stretch=LIST_LAYOUT_STRETCH)
+        content_layout.addWidget(self.main_content, stretch=LIST_LAYOUT_STRETCH)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -94,8 +91,3 @@ class LibraryLayout(QWidget):
     def sync_skeleton_geometry(self) -> None:
         self.poster_skeleton.setGeometry(self.poster.rect())
         self.entries_skeleton.setGeometry(self.entries.rect())
-
-    def position_sidebar_drawer(self) -> None:
-        self.sidebar.sync_geometry(self.width(), self.height())
-        if self.sidebar.is_open():
-            self.sidebar.raise_()

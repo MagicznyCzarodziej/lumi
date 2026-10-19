@@ -100,6 +100,7 @@ class TopBar(QWidget):
 
         self._recent_button = _FilterButton("Recent")
         self._recent_button.clicked.connect(self.recent_requested.emit)
+        self._recent_button.installEventFilter(self)
 
         search_icon = IconLabel(IconKind.SEARCH, color=TOPBAR_INACTIVE, parent=self)
         search_icon.setObjectName("searchIcon")
@@ -130,9 +131,18 @@ class TopBar(QWidget):
 
         self._rebuild_button = _FilterButton("Rebuild")
         self._rebuild_button.clicked.connect(self.rebuild_requested.emit)
+        self._rebuild_button.installEventFilter(self)
+        self._chrome_order: list[QWidget] = [
+            self._recent_button,
+            self._search,
+            *self._button_order,
+            self._rebuild_button,
+        ]
 
         self._tag_ribbon = InlineTagRibbon(self)
         self._tag_ribbon.tag_selected.connect(self.tag_filter_changed.emit)
+        self._tag_ribbon.focus_previous_requested.connect(self.focus_rebuild)
+        self._tag_ribbon.focus_next_requested.connect(self.navigate_down.emit)
 
         controls = QHBoxLayout()
         controls.setContentsMargins(0, 0, 0, 0)
@@ -190,6 +200,21 @@ class TopBar(QWidget):
         if self._button_order:
             self._button_order[0].setFocus(Qt.FocusReason.OtherFocusReason)
 
+    def focus_rebuild(self) -> None:
+        self._rebuild_button.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def focus_tags_or_entries(self) -> None:
+        if self._tag_ribbon.has_tags():
+            self._tag_ribbon.focus_first_tag()
+            return
+        self.navigate_down.emit()
+
+    def focus_tags_or_first_filter(self) -> None:
+        if self._tag_ribbon.has_tags():
+            self._tag_ribbon.focus_first_tag()
+            return
+        self.focus_first_filter()
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched is self._search:
             if event.type() != QEvent.Type.KeyPress:
@@ -198,7 +223,16 @@ class TopBar(QWidget):
             if not isinstance(key_event, QKeyEvent):
                 return super().eventFilter(watched, event)
             if key_event.key() == Qt.Key.Key_Down:
-                self.navigate_down.emit()
+                self.focus_tags_or_entries()
+                return True
+            if key_event.key() == Qt.Key.Key_Left and self._search.cursorPosition() == 0:
+                self._recent_button.setFocus(Qt.FocusReason.TabFocusReason)
+                return True
+            if (
+                key_event.key() == Qt.Key.Key_Right
+                and self._search.cursorPosition() == len(self._search.text())
+            ):
+                self._buttons[EntriesFilter.ALL].setFocus(Qt.FocusReason.TabFocusReason)
                 return True
             if is_escape_key(key_event.key()):
                 if self._search.text():
@@ -206,7 +240,7 @@ class TopBar(QWidget):
                 return True
             return super().eventFilter(watched, event)
 
-        if not isinstance(watched, _FilterButton) or watched not in self._button_order:
+        if not isinstance(watched, _FilterButton) or watched not in self._chrome_order:
             return super().eventFilter(watched, event)
 
         if event.type() == QEvent.Type.FocusIn:
@@ -225,25 +259,23 @@ class TopBar(QWidget):
             return super().eventFilter(watched, event)
 
         key = key_event.key()
-        index = self._button_order.index(watched)
+        index = self._chrome_order.index(watched)
 
         if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             watched.clicked.emit()
             return True
         if key == Qt.Key.Key_Down:
-            self.navigate_down.emit()
+            self.focus_tags_or_entries()
             return True
         if key == Qt.Key.Key_Up:
             return True
         if key == Qt.Key.Key_Right:
-            if index < len(self._button_order) - 1:
-                self._button_order[index + 1].setFocus(Qt.FocusReason.TabFocusReason)
+            if index < len(self._chrome_order) - 1:
+                self._chrome_order[index + 1].setFocus(Qt.FocusReason.TabFocusReason)
             return True
         if key == Qt.Key.Key_Left:
             if index > 0:
-                self._button_order[index - 1].setFocus(Qt.FocusReason.TabFocusReason)
-            else:
-                self.focus_search()
+                self._chrome_order[index - 1].setFocus(Qt.FocusReason.TabFocusReason)
             return True
 
         return super().eventFilter(watched, event)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from tests.constants import MOCK_LIBRARY_ROOT
-from pathlib import PurePosixPath
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QStackedWidget
@@ -35,6 +34,12 @@ def _library_screen(qtbot) -> LibraryScreen:
     return screen
 
 
+def _focus_entries(qtbot, screen: LibraryScreen) -> None:
+    screen.activateWindow()
+    screen._layout.entries.setFocus(Qt.FocusReason.OtherFocusReason)
+    qtbot.waitUntil(screen._entries_has_focus)
+
+
 def test_alphabet_right_moves_focus_to_entries(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
@@ -52,7 +57,7 @@ def test_alphabet_right_moves_focus_to_entries(qtbot) -> None:
     assert delegate._pop_timer.isActive()
 
 
-def test_entries_up_from_first_row_moves_to_filters(qtbot) -> None:
+def test_entries_up_from_first_row_moves_to_tag_ribbon(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
     layout.entries.scroll_to_row(0)
@@ -63,24 +68,101 @@ def test_entries_up_from_first_row_moves_to_filters(qtbot) -> None:
 
     focus = QApplication.focusWidget()
     assert focus is not None
-    assert focus in layout.top_bar._button_order
+    assert focus.parent() is layout.top_bar.findChild(InlineTagRibbon)
 
 
-def test_entries_right_opens_sidebar(qtbot) -> None:
+def test_top_chrome_routes_from_recent_through_rebuild(qtbot) -> None:
+    screen = _library_screen(qtbot)
+    top_bar = screen._layout.top_bar
+    search = top_bar.findChild(QLineEdit, "searchField")
+    assert search is not None
+
+    chrome = [
+        top_bar._recent_button,
+        search,
+        top_bar._buttons[EntriesFilter.ALL],
+        top_bar._buttons[EntriesFilter.FILMS],
+        top_bar._buttons[EntriesFilter.SERIES],
+        top_bar._rebuild_button,
+    ]
+    chrome[0].setFocus(Qt.FocusReason.OtherFocusReason)
+    qtbot.wait(10)
+    assert QApplication.focusWidget() is chrome[0]
+
+    for current, expected in zip(chrome, chrome[1:], strict=False):
+        qtbot.keyClick(current, Qt.Key.Key_Right)
+        qtbot.wait(10)
+        assert QApplication.focusWidget() is expected
+
+    for current, expected in zip(reversed(chrome), reversed(chrome[:-1]), strict=False):
+        qtbot.keyClick(current, Qt.Key.Key_Left)
+        qtbot.wait(10)
+        assert QApplication.focusWidget() is expected
+
+
+def test_recent_button_exposes_screen_activation_seam(qtbot) -> None:
+    screen = _library_screen(qtbot)
+    requested: list[bool] = []
+    screen.recent_requested.connect(lambda: requested.append(True))
+
+    recent = screen._layout.top_bar._recent_button
+    recent.setFocus(Qt.FocusReason.OtherFocusReason)
+    qtbot.keyClick(recent, Qt.Key.Key_Return)
+
+    assert requested == [True]
+
+
+def test_chrome_tag_ribbon_and_entries_form_a_vertical_focus_path(qtbot) -> None:
+    screen = _library_screen(qtbot)
+    layout = screen._layout
+    ribbon = layout.top_bar.findChild(InlineTagRibbon)
+    assert ribbon is not None
+    all_tags = next(button for button in ribbon.findChildren(QPushButton) if button.text() == "All")
+
+    layout.top_bar._rebuild_button.setFocus(Qt.FocusReason.OtherFocusReason)
+    qtbot.wait(10)
+    qtbot.keyClick(layout.top_bar._rebuild_button, Qt.Key.Key_Down)
+    qtbot.wait(10)
+    assert QApplication.focusWidget() is all_tags
+
+    qtbot.keyClick(all_tags, Qt.Key.Key_Down)
+    qtbot.wait(10)
+    assert screen._entries_has_focus()
+
+    layout.entries.scroll_to_row(0)
+    qtbot.keyClick(layout.entries, Qt.Key.Key_Up)
+    qtbot.wait(10)
+    assert QApplication.focusWidget() is all_tags
+
+    qtbot.keyClick(all_tags, Qt.Key.Key_Up)
+    qtbot.wait(10)
+    assert QApplication.focusWidget() is layout.top_bar._rebuild_button
+
+
+def test_entries_right_keeps_focus_on_entries(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
     layout.entries.setFocus()
+    qtbot.wait(10)
 
     qtbot.keyClick(layout.entries, Qt.Key.Key_Right)
     qtbot.wait(10)
 
-    assert layout.sidebar.is_open()
-    focus = QApplication.focusWidget()
-    assert focus is not None
-    assert layout.sidebar.isAncestorOf(focus)
+    assert screen._entries_has_focus()
 
 
-def test_filters_down_moves_focus_to_entries(qtbot) -> None:
+def test_library_shell_places_full_height_alphabet_rail_between_poster_and_content(qtbot) -> None:
+    screen = _library_screen(qtbot)
+    layout = screen._layout
+
+    assert layout.poster.geometry().right() < layout.alphabet_rail.geometry().left()
+    assert layout.alphabet_rail.geometry().right() < layout.main_content.geometry().left()
+    assert layout.alphabet_rail.height() == layout.main_content.height()
+    assert layout.alphabet.parentWidget() is layout.alphabet_rail
+    assert not hasattr(layout, "sidebar")
+
+
+def test_filters_down_moves_focus_to_tag_ribbon(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
     layout.top_bar.focus_first_filter()
@@ -90,7 +172,9 @@ def test_filters_down_moves_focus_to_entries(qtbot) -> None:
 
     qtbot.keyClick(focus, Qt.Key.Key_Down)
 
-    assert screen._entries_has_focus()
+    focus = QApplication.focusWidget()
+    assert focus is not None
+    assert focus.parent() is layout.top_bar.findChild(InlineTagRibbon)
 
 
 def test_inline_tag_ribbon_composes_with_search_and_type_filters(qtbot) -> None:
@@ -121,33 +205,49 @@ def test_inline_tag_ribbon_composes_with_search_and_type_filters(qtbot) -> None:
     assert titles == ["Alien"]
 
 
-def test_sidebar_left_and_right_return_to_entries(qtbot) -> None:
+def test_typing_from_entries_searches_and_escape_restores_entries(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
-    screen._open_sidebar()
+    unfiltered_count = layout.entries.count()
+    _focus_entries(qtbot, screen)
+
+    qtbot.keyClicks(layout.entries, "alien")
     qtbot.wait(10)
-    focus = QApplication.focusWidget()
-    assert focus is not None
-    assert layout.sidebar.isAncestorOf(focus)
 
-    qtbot.keyClick(focus, Qt.Key.Key_Left)
+    assert screen._search_query == "alien"
+    assert layout.entries.count() == 1
     assert screen._entries_has_focus()
-    assert not layout.sidebar.is_open()
 
-    screen._open_sidebar()
+    qtbot.keyClick(layout.entries, Qt.Key.Key_Escape)
     qtbot.wait(10)
-    focus = QApplication.focusWidget()
-    assert focus is not None
 
-    qtbot.keyClick(focus, Qt.Key.Key_Right)
+    assert screen._search_query == ""
+    assert layout.entries.count() == unfiltered_count
     assert screen._entries_has_focus()
-    assert not layout.sidebar.is_open()
+
+
+def test_entry_selection_synchronizes_alphabet_and_poster(qtbot) -> None:
+    screen = _library_screen(qtbot)
+    layout = screen._layout
+    alien_row = next(
+        index
+        for index in range(layout.entries.count())
+        if layout.entries.item(index).data(Qt.ItemDataRole.UserRole).name.name == "Alien"
+    )
+    layout.entries.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    layout.entries.scroll_to_row(alien_row)
+
+    selected = layout.entries.item(alien_row).data(Qt.ItemDataRole.UserRole)
+    assert layout.entries.currentRow() == alien_row
+    assert layout.alphabet._active_letter == "A"
+    assert layout.poster._current_path == selected.poster_path
 
 
 def test_entries_left_focuses_alphabet(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
-    layout.entries.setFocus()
+    _focus_entries(qtbot, screen)
 
     qtbot.keyClick(layout.entries, Qt.Key.Key_Left)
     qtbot.wait(10)
@@ -158,61 +258,14 @@ def test_entries_left_focuses_alphabet(qtbot) -> None:
     assert layout.alphabet._pop_timer.isActive()
 
 
-def test_entries_up_does_not_open_sidebar(qtbot) -> None:
+def test_entries_up_from_later_rows_keeps_entries_focus(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
-    layout.entries.scroll_to_row(0)
-    layout.entries.setFocus()
-
-    qtbot.keyClick(layout.entries, Qt.Key.Key_Up)
-    qtbot.wait(10)
-
-    assert not layout.sidebar.is_open()
-
     layout.entries.scroll_to_row(5)
-    layout.entries.setFocus()
+    _focus_entries(qtbot, screen)
+
     qtbot.keyClick(layout.entries, Qt.Key.Key_Up)
     qtbot.wait(10)
 
-    assert not layout.sidebar.is_open()
-
-
-def test_sidebar_up_from_all_focuses_rebuild(qtbot) -> None:
-    screen = _library_screen(qtbot)
-    sidebar = screen._layout.sidebar
-
-    screen._open_sidebar()
-    qtbot.wait(10)
-
-    all_button = sidebar._tag_buttons[0]
-    all_button.setFocus(Qt.FocusReason.OtherFocusReason)
-    qtbot.wait(10)
-
-    qtbot.keyClick(all_button, Qt.Key.Key_Up)
-    qtbot.wait(10)
-
-    focus = QApplication.focusWidget()
-    assert focus is sidebar._rebuild_button
-
-
-def test_sidebar_remembers_last_focused_item(qtbot) -> None:
-    screen = _library_screen(qtbot)
-    sidebar = screen._layout.sidebar
-    assert len(sidebar._tag_buttons) >= 2
-
-    screen._open_sidebar()
-    qtbot.wait(10)
-
-    target = sidebar._tag_buttons[1]
-    target.setFocus(Qt.FocusReason.OtherFocusReason)
-    qtbot.wait(10)
-
-    qtbot.keyClick(target, Qt.Key.Key_Left)
-    qtbot.wait(10)
-    assert not sidebar.is_open()
-
-    screen._open_sidebar()
-    qtbot.wait(10)
-
-    focus = QApplication.focusWidget()
-    assert focus is target
+    assert screen._entries_has_focus()
+    assert layout.entries.focused_row() == 4

@@ -1,11 +1,11 @@
-"""Library root screen — poster, filters, A–Z, tag sidebar drawer."""
+"""Library root screen — poster, top chrome, A–Z rail, and entries."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from typing import cast
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QApplication, QVBoxLayout
 
@@ -27,6 +27,8 @@ from lumi.ui.screens.library.library_layout import LibraryLayout
 
 
 class LibraryScreen(NavigableScreen):
+    recent_requested = Signal()
+
     def __init__(
         self,
         router: Router,
@@ -56,16 +58,13 @@ class LibraryScreen(NavigableScreen):
         self._layout.top_bar.filter_changed.connect(self._on_filter_changed)
         self._layout.top_bar.search_changed.connect(self._on_search_changed)
         self._layout.top_bar.tag_filter_changed.connect(self._on_tag_filter_changed)
+        self._layout.top_bar.recent_requested.connect(self.recent_requested.emit)
         self._layout.top_bar.rebuild_requested.connect(self._request_rebuild)
         self._layout.top_bar.navigate_down.connect(self._focus_current_entry)
-        self._layout.sidebar.tag_filter_changed.connect(self._on_tag_filter_changed)
-        self._layout.sidebar.rebuild_requested.connect(self._request_rebuild)
-        self._layout.sidebar.navigate_to_entries.connect(self._leave_sidebar_to_entries)
         self._layout.alphabet.letter_activated.connect(self._on_letter_activated)
         self._layout.alphabet.exit_to_entries.connect(self._leave_alphabet_to_entries)
         self._layout.entries.focus_left_requested.connect(self._leave_entries_to_alphabet)
-        self._layout.entries.focus_right_requested.connect(self._open_sidebar)
-        self._layout.entries.focus_up_requested.connect(self._layout.top_bar.focus_first_filter)
+        self._layout.entries.focus_up_requested.connect(self._layout.top_bar.focus_tags_or_first_filter)
         self._layout.entries.type_to_search.connect(self._on_type_to_search)
         self._layout.entries.clear_search_requested.connect(self._on_clear_search_requested)
         self._layout.entries.backspace_search_requested.connect(
@@ -147,7 +146,6 @@ class LibraryScreen(NavigableScreen):
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         self._layout.sync_skeleton_geometry()
-        self._layout.position_sidebar_drawer()
 
     def _request_rebuild(self) -> None:
         if self._on_rebuild_library is not None:
@@ -179,8 +177,6 @@ class LibraryScreen(NavigableScreen):
         alphabet_had_focus = self._alphabet_has_focus()
         search_had_focus = self._layout.top_bar.search_has_focus()
 
-        self._layout.sidebar.set_active_tag(self._tag_filter)
-        self._layout.sidebar.set_tags(self._ui_state.tags)
         self._layout.top_bar.set_active_filter(self._entries_filter)
         self._layout.top_bar.set_active_tag(self._tag_filter)
         self._layout.top_bar.set_tags(self._ui_state.tags)
@@ -216,10 +212,6 @@ class LibraryScreen(NavigableScreen):
                     self._layout.empty_label.setText("Library is empty.")
                 self._layout.empty_label.show()
             self._layout.poster.set_poster_path(None, immediate=True)
-
-        if self._layout.sidebar.is_open():
-            QTimer.singleShot(0, self._layout.sidebar.restore_menu_focus)
-            return
 
         if entries_had_focus:
             if self._ui_state.entries:
@@ -294,13 +286,6 @@ class LibraryScreen(NavigableScreen):
     def _leave_entries_to_alphabet(self) -> None:
         self._focus_active_letter()
         self._layout.alphabet.start_focus_pop()
-
-    def _open_sidebar(self) -> None:
-        self._layout.sidebar.focus_first_item()
-
-    def _leave_sidebar_to_entries(self) -> None:
-        self._layout.sidebar.close_drawer()
-        self._focus_current_entry()
 
     def _entries_has_focus(self) -> bool:
         focus = QApplication.focusWidget()

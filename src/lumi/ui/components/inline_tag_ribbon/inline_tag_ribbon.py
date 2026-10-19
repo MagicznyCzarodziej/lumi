@@ -59,6 +59,9 @@ class InlineTagRibbon(QWidget):
         self._active_tag = tag
         self._sync_selected_button()
 
+    def has_tags(self) -> bool:
+        return bool(self._buttons)
+
     def focus_first_tag(self) -> None:
         if self._buttons:
             self._buttons[0].setFocus(Qt.FocusReason.OtherFocusReason)
