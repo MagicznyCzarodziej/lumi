@@ -18,7 +18,11 @@ from lumi.domain.playback import PlaybackUriResolver
 from lumi.domain.subtitles.cache import SubtitleCache
 from lumi.domain.subtitles.provider import SubtitleDownloadProvider
 from lumi.domain.subtitles.saved_state import NapiSavedStateStore
-from lumi.infrastructure.watch_progress import load_watch_position, save_watch_position
+from lumi.infrastructure.watch_progress import (
+    load_watch_position,
+    save_recent_watch_record,
+    save_watch_position,
+)
 from lumi.ui.player.controller.controller import MpvController
 from lumi.ui.player.overlay.deps import OverlayDeps
 from lumi.ui.player.overlay.input_router import is_dismiss_key
@@ -152,9 +156,15 @@ class VideoArea(QWidget):
         if library_path is None:
             return
         duration = self.controller.duration()
+        position = self.controller.time_pos()
         save_watch_position(
             library_path,
-            self.controller.time_pos(),
+            position,
+            duration=duration if duration > 0 else None,
+        )
+        save_recent_watch_record(
+            library_path,
+            position,
             duration=duration if duration > 0 else None,
         )
 

@@ -55,6 +55,10 @@ def watch_progress_path() -> Path:
     return default_config_dir() / "watch_progress.json"
 
 
+def recent_watch_path() -> Path:
+    return default_config_dir() / "recent_watch.json"
+
+
 def track_selection_path() -> Path:
     return default_config_dir() / "track_selection.json"
 

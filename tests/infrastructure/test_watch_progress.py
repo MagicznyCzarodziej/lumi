@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import PurePosixPath
 
+from lumi.domain.recent_watch import RecentWatchRecord
 from lumi.infrastructure.watch_progress import (
+    load_recent_watch_records,
     load_watch_position,
+    save_recent_watch_record,
     save_watch_position,
 )
 
@@ -66,3 +70,105 @@ def test_save_watch_position_updates_existing_entry(tmp_path) -> None:
 
     assert load_watch_position(first, duration=7200.0, path=path) == 150.0
     assert load_watch_position(second, duration=7200.0, path=path) == 200.0
+
+
+def test_save_and_load_recent_watch_record(tmp_path) -> None:
+    path = tmp_path / "recent_watch.json"
+    library_path = PurePosixPath("Alien/Alien.mkv")
+    watched_at = datetime(2026, 10, 19, 21, 16, tzinfo=UTC)
+
+    save_recent_watch_record(
+        library_path,
+        1234.567,
+        duration=7200.0,
+        watched_at=watched_at,
+        path=path,
+    )
+
+    assert load_recent_watch_records(path=path) == [
+        RecentWatchRecord(
+            library_path=library_path,
+            position=1234.567,
+            duration=7200.0,
+            watched_at=watched_at,
+        )
+    ]
+    assert json.loads(path.read_text(encoding="utf-8")) == {
+        "version": 1,
+        "records": [
+            {
+                "path": "Alien/Alien.mkv",
+                "position": 1234.567,
+                "duration": 7200.0,
+                "watchedAt": "2026-10-19T21:16:00Z",
+            }
+        ],
+    }
+
+
+def test_save_recent_watch_record_removes_completed_playback(tmp_path) -> None:
+    path = tmp_path / "recent_watch.json"
+    library_path = PurePosixPath("Alien/Alien.mkv")
+
+    save_recent_watch_record(library_path, 100.0, duration=7200.0, path=path)
+    save_recent_watch_record(library_path, 7190.0, duration=7200.0, path=path)
+
+    assert load_recent_watch_records(path=path) == []
+
+
+def test_load_recent_watch_records_ignores_corrupt_or_unknown_schema(tmp_path) -> None:
+    recent_path = tmp_path / "recent_watch.json"
+    watch_progress = tmp_path / "watch_progress.json"
+    library_path = PurePosixPath("Alien/Alien.mkv")
+    watch_progress.write_text(json.dumps({library_path.as_posix(): 120.0}), encoding="utf-8")
+    recent_path.write_text("{", encoding="utf-8")
+
+    assert load_recent_watch_records(path=recent_path) == []
+    assert load_watch_position(library_path, duration=7200.0, path=watch_progress) == 120.0
+
+    recent_path.write_text(
+        json.dumps({"version": 2, "records": []}),
+        encoding="utf-8",
+    )
+
+    assert load_recent_watch_records(path=recent_path) == []
+
+
+def test_load_recent_watch_records_ignores_malformed_and_completed_records(tmp_path) -> None:
+    path = tmp_path / "recent_watch.json"
+    path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "records": [
+                    {
+                        "path": "Alien/Alien.mkv",
+                        "position": 100.0,
+                        "duration": 7200.0,
+                        "watchedAt": "2026-10-19T21:16:00Z",
+                    },
+                    {
+                        "path": "invalid/record.mkv",
+                        "position": "not-a-number",
+                        "watchedAt": "2026-10-19T21:16:00Z",
+                    },
+                    {
+                        "path": "Complete/Film.mkv",
+                        "position": 7190.0,
+                        "duration": 7200.0,
+                        "watchedAt": "2026-10-19T21:16:00Z",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert load_recent_watch_records(path=path) == [
+        RecentWatchRecord(
+            library_path=PurePosixPath("Alien/Alien.mkv"),
+            position=100.0,
+            duration=7200.0,
+            watched_at=datetime(2026, 10, 19, 21, 16, tzinfo=UTC),
+        )
+    ]
