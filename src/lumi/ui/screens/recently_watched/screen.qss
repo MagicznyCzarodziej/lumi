@@ -1,0 +1,8 @@
+#RecentlyWatchedScreen {
+    background-color: @BACKGROUND@;
+}
+
+#RecentlyWatchedScreen #emptyLabel {
+    color: @ALPHABET_INACTIVE_TEXT@;
+    font-size: @FONT_SIZE_LG@px;
+}

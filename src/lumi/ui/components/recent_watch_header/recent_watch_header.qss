@@ -1,0 +1,14 @@
+#RecentWatchHeader {
+    background: transparent;
+    border: none;
+}
+
+#RecentWatchHeader:focus {
+    border-bottom: @LIST_SELECTION_ACCENT_WIDTH@ solid @LIST_SELECTION_ACCENT@;
+}
+
+#RecentWatchHeader #title {
+    color: @TEXT_PRIMARY@;
+    font-size: @FONT_SIZE_HEADER_TITLE@px;
+    font-weight: 600;
+}

@@ -12,6 +12,11 @@ class LibraryDestination:
 
 
 @dataclass(frozen=True)
+class RecentlyWatchedDestination:
+    pass
+
+
+@dataclass(frozen=True)
 class SeriesDestination:
     series_id: str
 
@@ -39,6 +44,7 @@ class MediaGroupingEpisodesGroupDestination:
 
 Destination = Union[
     LibraryDestination,
+    RecentlyWatchedDestination,
     SeriesDestination,
     EpisodesGroupDestination,
     FilmSeriesDestination,
@@ -47,3 +53,4 @@ Destination = Union[
 ]
 
 LIBRARY = LibraryDestination()
+RECENTLY_WATCHED = RecentlyWatchedDestination()
