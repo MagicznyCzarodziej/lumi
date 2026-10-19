@@ -35,8 +35,11 @@ def _library_screen(qtbot) -> LibraryScreen:
     screen.set_ready(context)
     screen.resize(1280, 720)
     screen.show()
+    screen.raise_()
     screen.activateWindow()
     qtbot.waitExposed(screen)
+    qtbot.waitUntil(screen.isActiveWindow)
+    screen.focus_default()
     return screen
 
 
