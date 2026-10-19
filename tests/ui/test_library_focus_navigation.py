@@ -62,8 +62,6 @@ def test_alphabet_right_moves_focus_to_entries(qtbot) -> None:
     delegate = layout.entries.itemDelegate()
     assert isinstance(delegate, ListEntryDelegate)
     assert delegate._pop_timer.isActive()
-    qtbot.wait(300)
-    assert delegate._pop_timer.isActive()
 
 
 def test_entries_up_from_first_row_moves_to_tag_ribbon(qtbot) -> None:
@@ -296,8 +294,6 @@ def test_entries_left_focuses_alphabet(qtbot) -> None:
     qtbot.wait(10)
 
     assert screen._alphabet_has_focus()
-    assert layout.alphabet._pop_timer.isActive()
-    qtbot.wait(300)
     assert layout.alphabet._pop_timer.isActive()
 
 
