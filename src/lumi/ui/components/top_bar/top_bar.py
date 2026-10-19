@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, QObject, Qt, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QRect, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPen
-from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLineEdit, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QHBoxLayout,
+    QLineEdit,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from lumi.ui.components.icon_label import IconLabel
 from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
@@ -24,18 +32,29 @@ from lumi.ui.theme.colors import (
 from lumi.ui.theme.spacing import (
     FOCUS_RING_WIDTH,
     ICON_SIZE,
-    SPACE_SM,
     TOPBAR_CHROME_GAP,
     TOPBAR_CONTENT_MARGINS,
+    TOPBAR_DIVIDER_MARGIN_H,
     TOPBAR_FILTER_GAP,
     TOPBAR_HIT_TARGET,
     TOPBAR_ICON_RADIUS,
     TOPBAR_SEARCH_ICON_SIZE,
+    TOPBAR_SEARCH_INNER_GAP,
     TOPBAR_SEARCH_PADDING_H,
-    TOPBAR_SEARCH_RADIUS,
-    TOPBAR_SEARCH_TEXT_GAP,
+    TOPBAR_SEARCH_PADDING_V,
+    TOPBAR_SECTION_GAP,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
+
+
+def _paint_kb_focus_ring(painter: QPainter, outer: QRect, radius: float) -> None:
+    ring = FOCUS_RING_WIDTH
+    outline = outer.adjusted(ring // 2, ring // 2, -(ring + 1) // 2, -(ring + 1) // 2)
+    pen = QPen(QColor(WHITE), ring)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawRoundedRect(outline, radius + ring // 2, radius + ring // 2)
 
 
 class _ChromeIconButton(QWidget):
@@ -62,37 +81,31 @@ class _ChromeIconButton(QWidget):
 
     def paintEvent(self, event) -> None:
         del event
-        outer = self.rect()
-        ring = FOCUS_RING_WIDTH
+        outer = self.rect().adjusted(0, 0, -1, -1)
         radius = TOPBAR_ICON_RADIUS
-        fill_rect = outer.adjusted(ring, ring, -ring, -ring) if self.hasFocus() else outer
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         if self._selected:
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(ALPHABET_ACTIVE_TINT))
-            painter.drawRoundedRect(fill_rect, radius, radius)
+            painter.drawRoundedRect(outer, radius, radius)
             icon_color = TOPBAR_ACTIVE
         elif self.hasFocus():
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(TOPBAR_FOCUS_TINT))
-            painter.drawRoundedRect(fill_rect, radius, radius)
+            painter.drawRoundedRect(outer, radius, radius)
             icon_color = WHITE
         else:
             icon_color = TOPBAR_INACTIVE
+
         if self.hasFocus():
-            outline = outer.adjusted(ring // 2, ring // 2, -(ring + 1) // 2, -(ring + 1) // 2)
-            pen = QPen(QColor(WHITE), ring)
-            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            painter.setPen(pen)
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRoundedRect(outline, radius + ring // 2, radius + ring // 2)
-        icon_target = fill_rect if self.hasFocus() else outer
-        icon_rect = icon_target.adjusted(
-            (icon_target.width() - ICON_SIZE) // 2,
-            (icon_target.height() - ICON_SIZE) // 2,
-            -((icon_target.width() - ICON_SIZE + 1) // 2),
-            -((icon_target.height() - ICON_SIZE + 1) // 2),
+            _paint_kb_focus_ring(painter, self.rect(), radius)
+
+        icon_rect = outer.adjusted(
+            (outer.width() - ICON_SIZE) // 2,
+            (outer.height() - ICON_SIZE) // 2,
+            -((outer.width() - ICON_SIZE + 1) // 2),
+            -((outer.height() - ICON_SIZE + 1) // 2),
         )
         paint_icon(painter, icon_rect, self._icon, QColor(icon_color))
         painter.end()
@@ -101,6 +114,14 @@ class _ChromeIconButton(QWidget):
         self.setFocus(Qt.FocusReason.MouseFocusReason)
         self.clicked.emit()
         super().mousePressEvent(event)
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        self.update()
+
+    def focusOutEvent(self, event) -> None:
+        super().focusOutEvent(event)
+        self.update()
 
 
 class _SearchPill(QWidget):
@@ -119,22 +140,15 @@ class _SearchPill(QWidget):
 
     def paintEvent(self, event) -> None:
         del event
-        outer = self.rect()
-        ring = FOCUS_RING_WIDTH
-        fill = outer.adjusted(ring, ring, -ring, -ring) if self._search_focused else outer
-        radius = min(TOPBAR_SEARCH_RADIUS, fill.height() // 2)
+        outer = self.rect().adjusted(0, 0, -1, -1)
+        radius = outer.height() // 2
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(TOPBAR_SURFACE))
-        painter.drawRoundedRect(fill, radius, radius)
+        painter.drawRoundedRect(outer, radius, radius)
         if self._search_focused:
-            outline = outer.adjusted(ring // 2, ring // 2, -(ring + 1) // 2, -(ring + 1) // 2)
-            pen = QPen(QColor(WHITE), ring)
-            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            painter.setPen(pen)
-            painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawRoundedRect(outline, radius + ring // 2, radius + ring // 2)
+            _paint_kb_focus_ring(painter, self.rect(), radius)
         painter.end()
 
 
@@ -158,7 +172,6 @@ class TopBar(QWidget):
 
         self._recent_button = _ChromeIconButton(IconKind.HISTORY, "Recently watched")
         self._recent_button.clicked.connect(self.recent_requested.emit)
-        self._recent_button.installEventFilter(self)
 
         self._search_pill = _SearchPill(self)
         self._search_pill.setFixedHeight(TOPBAR_HIT_TARGET)
@@ -169,11 +182,11 @@ class TopBar(QWidget):
         search_layout = QHBoxLayout(self._search_pill)
         search_layout.setContentsMargins(
             TOPBAR_SEARCH_PADDING_H,
-            0,
+            TOPBAR_SEARCH_PADDING_V,
             TOPBAR_SEARCH_PADDING_H,
-            0,
+            TOPBAR_SEARCH_PADDING_V,
         )
-        search_layout.setSpacing(TOPBAR_SEARCH_TEXT_GAP)
+        search_layout.setSpacing(TOPBAR_SEARCH_INNER_GAP)
 
         search_icon = IconLabel(
             IconKind.SEARCH,
@@ -185,15 +198,17 @@ class TopBar(QWidget):
 
         self._search = QLineEdit(self._search_pill)
         self._search.setObjectName("searchField")
-        self._search.setPlaceholderText("Search library...")
+        self._search.setPlaceholderText("Search library…")
         self._search.textChanged.connect(self.search_changed.emit)
         self._search.installEventFilter(self)
-        search_layout.addWidget(search_icon)
-        search_layout.addWidget(self._search, stretch=1)
+        search_layout.addWidget(search_icon, alignment=Qt.AlignmentFlag.AlignVCenter)
+        search_layout.addWidget(self._search, stretch=1, alignment=Qt.AlignmentFlag.AlignVCenter)
 
-        button_row = QHBoxLayout()
-        button_row.setContentsMargins(0, 0, 0, 0)
-        button_row.setSpacing(TOPBAR_FILTER_GAP)
+        filter_host = QWidget()
+        filter_host.setObjectName("filterIcons")
+        filter_layout = QHBoxLayout(filter_host)
+        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_layout.setSpacing(TOPBAR_FILTER_GAP)
         for icon, label, filter_value in (
             (IconKind.GRID_VIEW, "All titles", EntriesFilter.ALL),
             (IconKind.PLAY_CIRCLE, "Films", EntriesFilter.FILMS),
@@ -201,18 +216,22 @@ class TopBar(QWidget):
         ):
             button = _ChromeIconButton(icon, label)
             button.clicked.connect(lambda f=filter_value: self._select_filter(f))
-            button.installEventFilter(self)
             self._buttons[filter_value] = button
             self._button_order.append(button)
-            button_row.addWidget(button)
+            filter_layout.addWidget(button)
 
         divider = QFrame()
         divider.setObjectName("topBarDivider")
         divider.setFrameShape(QFrame.Shape.VLine)
+        divider_host = QWidget()
+        divider_host.setObjectName("topBarDividerHost")
+        divider_layout = QHBoxLayout(divider_host)
+        divider_layout.setContentsMargins(TOPBAR_DIVIDER_MARGIN_H, 0, TOPBAR_DIVIDER_MARGIN_H, 0)
+        divider_layout.setSpacing(0)
+        divider_layout.addWidget(divider, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         self._rebuild_button = _ChromeIconButton(IconKind.REFRESH, "Rebuild library")
         self._rebuild_button.clicked.connect(self.rebuild_requested.emit)
-        self._rebuild_button.installEventFilter(self)
         self._chrome_order: list[QWidget] = [
             self._recent_button,
             self._search,
@@ -227,22 +246,23 @@ class TopBar(QWidget):
 
         controls = QHBoxLayout()
         controls.setContentsMargins(0, 0, 0, 0)
-        controls.setSpacing(0)
+        controls.setSpacing(TOPBAR_CHROME_GAP)
+        controls.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         controls.addWidget(self._recent_button)
-        controls.addSpacing(TOPBAR_CHROME_GAP)
         controls.addWidget(self._search_pill, stretch=1)
-        controls.addSpacing(TOPBAR_CHROME_GAP)
-        controls.addLayout(button_row)
-        controls.addSpacing(TOPBAR_CHROME_GAP)
-        controls.addWidget(divider)
-        controls.addSpacing(TOPBAR_CHROME_GAP)
+        controls.addWidget(filter_host)
+        controls.addWidget(divider_host)
         controls.addWidget(self._rebuild_button)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(*TOPBAR_CONTENT_MARGINS)
-        layout.setSpacing(SPACE_SM)
+        layout.setSpacing(TOPBAR_SECTION_GAP)
         layout.addLayout(controls)
         layout.addWidget(self._tag_ribbon)
+
+        for chrome_widget in self._chrome_order:
+            if isinstance(chrome_widget, _ChromeIconButton):
+                chrome_widget.installEventFilter(self)
 
     def clear_search(self) -> None:
         self._search.blockSignals(True)
@@ -328,11 +348,7 @@ class TopBar(QWidget):
         if not isinstance(watched, _ChromeIconButton) or watched not in self._chrome_order:
             return super().eventFilter(watched, event)
 
-        if event.type() == QEvent.Type.FocusIn:
-            watched.update()
-            return False
-
-        if event.type() == QEvent.Type.FocusOut:
+        if event.type() in (QEvent.Type.FocusIn, QEvent.Type.FocusOut):
             watched.update()
             return False
 
@@ -367,4 +383,5 @@ class TopBar(QWidget):
 
     def _select_filter(self, filter_value: EntriesFilter) -> None:
         self._active_filter = filter_value
+        self.set_active_filter(filter_value)
         self.filter_changed.emit(filter_value)

@@ -2,12 +2,6 @@
     background-color: transparent;
 }
 
-#TopBar QWidget#searchPill {
-    background-color: @TOPBAR_SURFACE@;
-    border: none;
-    border-radius: @TOPBAR_SEARCH_RADIUS@px;
-}
-
 #TopBar QLineEdit#searchField {
     background-color: transparent;
     border: none;
@@ -21,7 +15,7 @@
 }
 
 #TopBar QLineEdit#searchField::placeholder {
-    color: @TOPBAR_INACTIVE@;
+    color: @TOPBAR_PLACEHOLDER@;
 }
 
 #TopBar QFrame#topBarDivider {
