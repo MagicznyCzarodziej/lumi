@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROTOTYPE — Library home (original A3)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #07080f;
+      --muted: #8b90a8;
+      --text: #eef0f8;
+      --accent: #8b5cf6;
+      --accent-dim: rgba(139, 92, 246, 0.22);
+      --sidebar-focus: #1a2367;
+      --icon-muted: rgba(245, 245, 245, 0.35);
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "DM Sans", system-ui, sans-serif;
+    }
+    button, input { font: inherit; }
+    button { border: 0; color: inherit; background: none; }
+    .app {
+      display: grid;
+      grid-template-columns: 38vw minmax(0, 1fr);
+      width: 100%;
+      height: 100%;
+    }
+    .poster {
+      position: relative;
+      overflow: hidden;
+      background: #0a0a12;
+    }
+    .poster img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    .poster::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 50%, var(--bg) 100%),
+        linear-gradient(0deg, rgba(7, 8, 15, 0.9) 0%, transparent 42%);
+    }
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+    }
+    .chrome {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-shrink: 0;
+      padding: 1.5rem 1.75rem 0.85rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .search {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      gap: 0.65rem;
+      min-width: 0;
+      padding: 0.55rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      color: var(--icon-muted);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .search input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      color: var(--text);
+      background: transparent;
+      font-size: 0.92rem;
+    }
+    .search input::placeholder { color: var(--muted); }
+    .icon {
+      display: block;
+      width: 1.35rem;
+      height: 1.35rem;
+      flex-shrink: 0;
+      fill: currentColor;
+    }
+    .filters, .actions { display: flex; align-items: center; gap: 0.25rem; }
+    .icon-button {
+      display: grid;
+      width: 2.35rem;
+      height: 2.35rem;
+      place-items: center;
+      border-radius: 6px;
+      color: var(--icon-muted);
+    }
+    .icon-button.active { color: #f5f5f5; background: var(--accent-dim); }
+    .divider {
+      width: 1px;
+      height: 1.25rem;
+      margin: 0 0.15rem;
+      background: rgba(217, 217, 217, 0.2);
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      padding: 0 1.75rem 0.85rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .tags button {
+      padding: 0.35rem 0.75rem;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.72rem;
+    }
+    .tags button.active {
+      border-color: rgba(139, 92, 246, 0.5);
+      color: var(--text);
+      background: var(--accent-dim);
+    }
+    .list-area {
+      display: grid;
+      grid-template-columns: 3.25rem minmax(0, 1fr);
+      flex: 1;
+      min-height: 0;
+    }
+    .az {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.12rem;
+      overflow-y: auto;
+      padding: 0.75rem 0.35rem;
+      color: rgba(255, 255, 255, 0.22);
+      border-right: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.82rem;
+      font-weight: 600;
+      scrollbar-width: none;
+    }
+    .az::-webkit-scrollbar { display: none; }
+    .az span {
+      display: grid;
+      width: 1.85rem;
+      height: 1.85rem;
+      flex: 0 0 1.85rem;
+      place-items: center;
+      border-radius: 4px;
+    }
+    .az span.active {
+      color: var(--text);
+      background: var(--sidebar-focus);
+      transform: scale(1.05);
+    }
+    .list {
+      overflow-y: auto;
+      padding: 0.35rem 0 0.75rem;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    }
+    .row {
+      padding: 0.8rem 1.5rem 0.8rem 1rem;
+      border-left: 3px solid transparent;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    .row.selected {
+      border-left-color: var(--accent);
+      background: rgba(139, 92, 246, 0.08);
+    }
+    .title { font-size: 1.02rem; font-weight: 500; line-height: 1.25; }
+    .alt {
+      min-height: 1.1em;
+      margin-top: 0.28rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-style: italic;
+    }
+    .alt.empty { visibility: hidden; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="poster"><img id="poster" alt="" /></aside>
+    <main class="main">
+      <header class="chrome">
+        <label class="search">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0-2.07 4.93l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0A4.5 4.5 0 1 1 9.5 5a4.5 4.5 0 0 1 0 9Z"/></svg>
+          <input type="text" placeholder="Search library…" readonly />
+        </label>
+        <nav class="filters">
+          <button class="icon-button active" title="All"><svg class="icon" viewBox="0 0 24 24"><path d="M4 8h4V4H4v4Zm6 12h4v-4h-4v4Zm-6 0h4v-4H4v4Zm0-6h4v-4H4v4Zm6 0h4v-4h-4v4Zm6-10v4h4V4h-4Zm-6 4h4V4h-4v4Zm6 6h4v-4h-4v4Zm0 6h4v-4h-4v4Z"/></svg></button>
+          <button class="icon-button" title="Films"><svg class="icon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM9.5 16.5v-9l7 4.5-7 4.5Z"/></svg></button>
+          <button class="icon-button" title="Series"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H4a2 2 0 0 0-2 2v10h2V4h10V2Zm4 4H8a2 2 0 0 0-2 2v10h2V8h10V6Zm2 4h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm0 10h-8v-8h8v8Z"/></svg></button>
+        </nav>
+        <span class="divider"></span>
+        <div class="actions">
+          <button class="icon-button" title="Recently watched"><svg class="icon" viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.06 4.94l-1.42 1.42A9 9 0 1 0 13 3Zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12Z"/></svg></button>
+          <button class="icon-button" title="Rebuild library"><svg class="icon" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 16.22 7.78L13 11h7V4l-2.35 2.35Z"/></svg></button>
+        </div>
+      </header>
+      <nav class="tags">
+        <button class="active">All tags</button>
+        <button>action</button><button>adventure</button><button>comedy</button>
+        <button>drama</button><button>horror</button><button>sci-fi</button><button>thriller</button>
+      </nav>
+      <section class="list-area">
+        <div class="az" id="az"></div>
+        <div class="list" id="list"></div>
+      </section>
+    </main>
+  </div>
+  <script>
+    const entries = [
+      ["28 Days Later", "", "posters/28-days.jpg"],
+      ["Alien", "", "posters/alien.jpg"],
+      ["Arrival", "Story of Your Life", "posters/arrival.jpg"],
+      ["Back to the Future", "", "posters/bttf.jpg"],
+      ["Mad Max: Fury Road", "", "posters/madmax.jpg"],
+      ["Severance", "", "posters/severance.jpg"],
+      ["The Matrix", "", "posters/matrix.jpg"],
+    ];
+    let selected = 0;
+    const firstLetter = (title) => /^[A-Z]$/.test(title[0]) ? title[0] : "#";
+
+    function render() {
+      const activeLetter = firstLetter(entries[selected][0]);
+      const letters = ["#", ...new Set(entries.map((entry) => firstLetter(entry[0])).filter((letter) => letter !== "#"))];
+      document.getElementById("az").innerHTML = letters
+        .map((letter) => `<span class="${letter === activeLetter ? "active" : ""}">${letter}</span>`)
+        .join("");
+      document.getElementById("list").innerHTML = entries
+        .map(([title, alt], index) => `
+          <div class="row ${index === selected ? "selected" : ""}">
+            <div class="title">${title}</div>
+            <div class="alt ${alt ? "" : "empty"}">${alt || "—"}</div>
+          </div>`)
+        .join("");
+      document.getElementById("poster").src = entries[selected][2];
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") selected = Math.min(selected + 1, entries.length - 1);
+      else if (event.key === "ArrowUp") selected = Math.max(selected - 1, 0);
+      else return;
+      event.preventDefault();
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

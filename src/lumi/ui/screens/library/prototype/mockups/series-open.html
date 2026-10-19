@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PROTOTYPE — Series (seasons)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #07080f;
+      --muted: #8b90a8;
+      --text: #eef0f8;
+      --accent: #8b5cf6;
+      --accent-dim: rgba(139, 92, 246, 0.22);
+      --font-breadcrumb: 22px;
+      --font-header-title: 34px;
+      --font-list: 40px;
+      --font-list-alt: 22px;
+      --font-tag: 23px;
+      --font-xs: 17px;
+      --font-banner: 21px;
+      --row-line-gap: 6px;
+      --space-sm: 12px;
+      --space-md: 24px;
+      --space-lg: 36px;
+      --radius-sm: 6px;
+      --focus-ring: 3px;
+      --poster-w: 37%;
+      --pad-x: var(--space-md);
+      --list-pad-left: 18px;
+      --icon-size: 36px;
+      --font-count: 25px;
+      --row-meta-icon: var(--icon-size);
+      --row-meta-gap: 4px;
+    }
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      overflow: hidden;
+    }
+    .app {
+      display: grid;
+      grid-template-columns: var(--poster-w) minmax(0, 1fr);
+      height: 100%;
+      min-height: 0;
+    }
+    .poster-col {
+      position: relative;
+      overflow: hidden;
+      background: #0a0a12;
+    }
+    .poster-col__img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center top;
+    }
+    .poster-col__fade {
+      position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(90deg, transparent 50%, var(--bg) 100%),
+                  linear-gradient(0deg, rgba(7, 8, 15, 0.75) 0%, transparent 40%);
+    }
+    .main-col {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      background: var(--bg);
+    }
+    .header {
+      flex-shrink: 0;
+      padding: var(--space-md) var(--pad-x) var(--space-md) var(--list-pad-left);
+    }
+    .breadcrumbs {
+      font-size: var(--font-breadcrumb);
+      color: var(--muted);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header__title {
+      margin-top: var(--space-sm);
+      font-size: var(--font-header-title);
+      font-weight: 500;
+      line-height: 1.1;
+    }
+    .header__subtitle {
+      margin-top: var(--row-line-gap);
+      font-size: var(--font-list-alt);
+      color: var(--muted);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header__subtitle.empty { display: none; }
+    /* Tagi jak .tag-ribbon na library-home.html */
+    .header__tags.tag-ribbon {
+      margin-top: var(--space-sm);
+      padding: 0;
+      gap: 6px;
+    }
+    .tag-ribbon {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      align-items: center;
+    }
+    .header__tags.tag-ribbon .tag {
+      font-size: var(--font-xs);
+      padding: 5px 11px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .tag-ribbon .tag {
+      font-size: var(--font-tag);
+      padding: 10px 16px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .header__tags.tag-ribbon .tag.active,
+    .tag-ribbon .tag.active {
+      color: #c4a8ff;
+      background: var(--accent-dim);
+    }
+    .list {
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      overflow-y: auto;
+      padding: 8px var(--space-md) var(--space-md) 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    }
+    .list::-webkit-scrollbar { width: 8px; }
+    .list::-webkit-scrollbar-track { background: transparent; }
+    .list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+    }
+    /* Wiersze — jak library-home.html */
+    .row {
+      position: relative;
+      padding: 14px 24px 14px var(--list-pad-left);
+      border-left: 3px solid transparent;
+      cursor: default;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    .row.selected {
+      border-left-color: var(--accent);
+      background: rgba(139, 92, 246, 0.07);
+    }
+    .row .title {
+      font-size: var(--font-list);
+      font-weight: 500;
+      line-height: 1.12;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .row__meta {
+      position: absolute;
+      right: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: var(--row-meta-gap);
+      color: var(--muted);
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .row.selected .row__meta { visibility: visible; }
+    .row__meta svg {
+      width: var(--row-meta-icon);
+      height: var(--row-meta-icon);
+      display: block;
+      flex-shrink: 0;
+    }
+    .row__count {
+      font-size: var(--font-count);
+      font-weight: 500;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .intent-toast {
+      position: fixed; bottom: var(--space-lg); left: 50%; transform: translateX(-50%);
+      max-width: min(640px, 92vw); padding: var(--space-md) var(--space-lg);
+      background: rgba(13, 14, 31, 0.96);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-banner); color: var(--muted);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 40;
+    }
+    .intent-toast.visible { opacity: 1; }
+    .proto-note {
+      position: fixed;
+      top: 8px;
+      right: 8px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.65;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="poster-col">
+      <img class="poster-col__img" id="posterBg" alt="" />
+      <div class="poster-col__fade" aria-hidden="true"></div>
+    </aside>
+    <div class="main-col">
+      <header class="header" id="header"></header>
+      <div class="list" id="list"></div>
+    </div>
+  </div>
+  <div class="intent-toast" id="intentToast"></div>
+  <p class="proto-note" id="protoNote"></p>
+
+  <script>
+    const ICON_PLAYABLES =
+      "M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z";
+
+    const SERIES = {
+      kusuriya: {
+        title: "Kusuriya no Hitorigoto",
+        alt: "The Apothecary Diaries",
+        poster: "posters/severance.jpg",
+        tags: ["anime", "drama"],
+        seasons: [
+          { name: "Season 1", episodes: 24 },
+          { name: "Season 2", episodes: 12 },
+        ],
+      },
+      shingeki: {
+        title: "Shingeki no Kyojin",
+        alt: "Attack on Titan",
+        poster: "posters/matrix.jpg",
+        tags: ["anime", "action", "drama"],
+        seasons: [
+          { name: "Season 1", episodes: 25 },
+          { name: "Season 2", episodes: 12 },
+          { name: "Season 3", episodes: 22 },
+          { name: "Season 4", episodes: 28 },
+        ],
+      },
+      severance: {
+        title: "Severance",
+        alt: null,
+        poster: "posters/severance.jpg",
+        tags: ["sci-fi", "thriller"],
+        seasons: [{ name: "Season 1", episodes: 9 }],
+      },
+      kaguya: {
+        title: "Kaguya-sama wa Kokurasetai: Tensai-tachi no Renai Zunousen",
+        alt: "Kaguya-sama: Love Is War",
+        poster: "posters/severance.jpg",
+        tags: ["anime", "comedy", "romance"],
+        seasons: [
+          { name: "Season 1", episodes: 12 },
+          { name: "Season 2", episodes: 12 },
+          { name: "Season 3", episodes: 13 },
+        ],
+      },
+    };
+
+    const params = new URLSearchParams(location.search);
+    const seriesKey = params.get("series") || "kusuriya";
+    const series = SERIES[seriesKey] || SERIES.kusuriya;
+
+    const state = { selectedId: 0, toast: "" };
+
+    function showIntent(msg) {
+      state.toast = msg;
+      const el = document.getElementById("intentToast");
+      el.textContent = msg;
+      el.classList.add("visible");
+      clearTimeout(showIntent._t);
+      showIntent._t = setTimeout(() => {
+        el.classList.remove("visible");
+        state.toast = "";
+      }, 2200);
+    }
+
+    function render() {
+      document.getElementById("posterBg").src = series.poster;
+      document.getElementById("protoNote").textContent = `?series=${seriesKey}`;
+
+      const sub = series.alt
+        ? `<div class="header__subtitle">${series.alt}</div>`
+        : `<div class="header__subtitle empty"></div>`;
+      const tags = [...series.tags]
+        .sort()
+        .map((t) => `<span class="tag active">${t}</span>`)
+        .join("");
+
+      document.getElementById("header").innerHTML = `
+        <div class="breadcrumbs">Library</div>
+        <h1 class="header__title">${series.title}</h1>
+        ${sub}
+        <div class="header__tags tag-ribbon">${tags}</div>`;
+
+      document.getElementById("list").innerHTML = series.seasons.map((s, i) => {
+        const selected = i === state.selectedId;
+        return `
+          <div class="row${selected ? " selected" : ""}" data-i="${i}">
+            <div class="title">${s.name}</div>
+            <div class="row__meta" aria-hidden="${!selected}">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="${ICON_PLAYABLES}"/></svg>
+              <span class="row__count">${s.episodes}</span>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function handleKey(ev) {
+      if (ev.key === "Tab") { ev.preventDefault(); return; }
+      const max = series.seasons.length - 1;
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        state.selectedId = Math.min(state.selectedId + 1, max);
+        render();
+        scrollSelectedIntoView();
+        return;
+      }
+      if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        state.selectedId = Math.max(state.selectedId - 1, 0);
+        render();
+        scrollSelectedIntoView();
+        return;
+      }
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        const s = series.seasons[state.selectedId];
+        showIntent(`Episodes · ${s.name} (${s.episodes})`);
+        return;
+      }
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        showIntent("Back to library");
+        return;
+      }
+    }
+
+    function scrollSelectedIntoView() {
+      const row = document.querySelector(`.row[data-i="${state.selectedId}"]`);
+      row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+
+    window.addEventListener("keydown", handleKey);
+    render();
+  </script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import cast
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QResizeEvent
@@ -31,6 +32,7 @@ class LibraryScreen(NavigableScreen):
         router: Router,
         *,
         on_rebuild_library: Callable[[], None] | None = None,
+        layout_factory: Callable[[], LibraryLayout] | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -46,7 +48,7 @@ class LibraryScreen(NavigableScreen):
         self._is_loading = True
         self._rebuild_in_progress = False
 
-        self._layout = LibraryLayout()
+        self._layout = cast(LibraryLayout, (layout_factory or LibraryLayout)())
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.addWidget(self._layout, stretch=1)
