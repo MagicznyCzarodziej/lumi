@@ -103,6 +103,11 @@ class EntriesList(QListWidget):
     def focused_row(self) -> int:
         return self._focused_row
 
+    def pop_focused_row(self) -> None:
+        delegate = self.itemDelegate()
+        if isinstance(delegate, ListEntryDelegate):
+            delegate.start_pop(self.currentIndex())
+
     def consume_defer_poster_update(self) -> bool:
         """True when the latest row change came from held-key auto-repeat."""
         defer = self._defer_poster_update

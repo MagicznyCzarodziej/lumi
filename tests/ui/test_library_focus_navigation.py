@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QStackedWidget
 from lumi.config.settings import Settings
 from lumi.container import build_container
 from lumi.infrastructure.mock.mock_video_player import MockVideoPlayer
+from lumi.ui.components.list_entry_delegate import ListEntryDelegate
 from lumi.ui.context import ScreenContext
 from lumi.ui.navigation.router import Router
 from lumi.ui.screens.library.screen import LibraryScreen
@@ -42,6 +43,11 @@ def test_alphabet_right_moves_focus_to_entries(qtbot) -> None:
     qtbot.wait(10)
 
     assert screen._entries_has_focus()
+    delegate = layout.entries.itemDelegate()
+    assert isinstance(delegate, ListEntryDelegate)
+    assert delegate._pop_timer.isActive()
+    qtbot.wait(300)
+    assert delegate._pop_timer.isActive()
 
 
 def test_entries_up_from_first_row_moves_to_filters(qtbot) -> None:
@@ -117,6 +123,9 @@ def test_entries_left_focuses_alphabet(qtbot) -> None:
     qtbot.wait(10)
 
     assert screen._alphabet_has_focus()
+    assert layout.alphabet._pop_timer.isActive()
+    qtbot.wait(300)
+    assert layout.alphabet._pop_timer.isActive()
 
 
 def test_entries_up_does_not_open_sidebar(qtbot) -> None:

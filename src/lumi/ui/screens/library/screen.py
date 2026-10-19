@@ -58,8 +58,8 @@ class LibraryScreen(NavigableScreen):
         self._layout.sidebar.rebuild_requested.connect(self._request_rebuild)
         self._layout.sidebar.navigate_to_entries.connect(self._leave_sidebar_to_entries)
         self._layout.alphabet.letter_activated.connect(self._on_letter_activated)
-        self._layout.alphabet.exit_to_entries.connect(self._focus_current_entry)
-        self._layout.entries.focus_left_requested.connect(self._focus_active_letter)
+        self._layout.alphabet.exit_to_entries.connect(self._leave_alphabet_to_entries)
+        self._layout.entries.focus_left_requested.connect(self._leave_entries_to_alphabet)
         self._layout.entries.focus_right_requested.connect(self._open_sidebar)
         self._layout.entries.focus_up_requested.connect(self._layout.top_bar.focus_first_filter)
         self._layout.entries.type_to_search.connect(self._on_type_to_search)
@@ -266,6 +266,11 @@ class LibraryScreen(NavigableScreen):
         index = find_entry_index_for_letter(self._ui_state.entries, letter)
         self._layout.entries.scroll_to_row(index)
         self._layout.entries.setFocus(Qt.FocusReason.OtherFocusReason)
+        self._layout.entries.pop_focused_row()
+
+    def _leave_alphabet_to_entries(self) -> None:
+        self._focus_current_entry()
+        self._layout.entries.pop_focused_row()
 
     def _focus_current_entry(self) -> None:
         self._layout.entries.scroll_to_row(self._layout.entries.focused_row())
@@ -279,6 +284,10 @@ class LibraryScreen(NavigableScreen):
             self._layout.alphabet.scroll_to_row(index)
         self._previous_alphabet_letter = letter
         self._layout.alphabet.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _leave_entries_to_alphabet(self) -> None:
+        self._focus_active_letter()
+        self._layout.alphabet.start_focus_pop()
 
     def _open_sidebar(self) -> None:
         self._layout.sidebar.focus_first_item()

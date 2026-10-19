@@ -10,7 +10,18 @@ from PySide6.QtWidgets import QAbstractItemView, QStyledItemDelegate, QStyle, QS
 
 from lumi.ui.components.list_entry import ListEntryTypeKind, ListEntryUiModel, NameDisplayStrategy
 from lumi.ui.icons.material_icons import IconKind, paint_icon
-from lumi.ui.theme.colors import ENTRY_FOCUS_START, TEXT_MUTED, TEXT_PRIMARY
+from lumi.ui.theme.colors import (
+    ENTRY_FOCUS_START,
+    ENTRY_FOCUS_UNFOCUSED_ALPHA,
+    TEXT_MUTED,
+    TEXT_PRIMARY,
+)
+from lumi.ui.theme.motion import (
+    FOCUS_POP_DURATION_MS,
+    FOCUS_POP_FRAME_INTERVAL_MS,
+    focus_pop_highlight_color,
+    focus_pop_scale,
+)
 from lumi.ui.theme.scale import scaled as s
 from lumi.ui.theme.spacing import (
     CORNER_RADIUS_SM,
@@ -207,6 +218,11 @@ class ListEntryDelegate(QStyledItemDelegate):
         self._marquee_timer = QTimer(self)
         self._marquee_timer.setInterval(_MARQUEE_FRAME_INTERVAL_MS)
         self._marquee_timer.timeout.connect(self._update_marquee)
+        self._pop_index = QPersistentModelIndex()
+        self._pop_clock = QElapsedTimer()
+        self._pop_timer = QTimer(self)
+        self._pop_timer.setInterval(FOCUS_POP_FRAME_INTERVAL_MS)
+        self._pop_timer.timeout.connect(self._update_pop)
 
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index) -> None:
         model = index.data(Qt.ItemDataRole.UserRole)
@@ -214,8 +230,16 @@ class ListEntryDelegate(QStyledItemDelegate):
             super().paint(painter, option, index)
             return
 
+        painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setClipRect(option.rect)
+        pop_progress = self._pop_progress_for(index)
+        pop_scale = focus_pop_scale(pop_progress) if pop_progress is not None else 1.0
+        if pop_scale != 1.0:
+            center = option.rect.center()
+            painter.translate(center.x(), center.y())
+            painter.scale(pop_scale, pop_scale)
+            painter.translate(-center.x(), -center.y())
 
         outer = option.rect
         row_rect = outer.adjusted(0, 0, 0, -LIST_ROW_SPACING)
@@ -229,9 +253,9 @@ class ListEntryDelegate(QStyledItemDelegate):
             path = QPainterPath()
             path.addRoundedRect(QRectF(row_rect), self._CORNER_RADIUS, self._CORNER_RADIUS)
             gradient = QLinearGradient(QPointF(row_rect.left(), row_rect.top()), QPointF(row_rect.right(), row_rect.top()))
-            start = QColor(ENTRY_FOCUS_START)
+            start = focus_pop_highlight_color(QColor(ENTRY_FOCUS_START), pop_progress)
             if not focused:
-                start.setAlpha(128)
+                start.setAlpha(ENTRY_FOCUS_UNFOCUSED_ALPHA)
             gradient.setColorAt(0.0, start)
             gradient.setColorAt(0.9, QColor(0x0A, 0x0E, 0x23, 0))
             gradient.setColorAt(1.0, Qt.GlobalColor.transparent)
@@ -294,6 +318,7 @@ class ListEntryDelegate(QStyledItemDelegate):
 
         if focused:
             _paint_type_indicator(painter, inner, model)
+        painter.restore()
 
     def sizeHint(self, option: QStyleOptionViewItem, index) -> QSize:
         model = index.data(Qt.ItemDataRole.UserRole)
@@ -343,6 +368,39 @@ class ListEntryDelegate(QStyledItemDelegate):
                 self._stop_marquee()
                 return
             parent.viewport().update(parent.visualRect(self._marquee_index))
+
+    def start_pop(self, index) -> None:
+        if not index.isValid():
+            return
+        self._pop_index = QPersistentModelIndex(index)
+        self._pop_clock.restart()
+        self._pop_timer.start()
+        self._update_pop()
+
+    def _pop_progress_for(self, index) -> float | None:
+        if self._pop_index != QPersistentModelIndex(index):
+            return None
+        elapsed_ms = self._pop_clock.elapsed()
+        if elapsed_ms >= FOCUS_POP_DURATION_MS:
+            self._stop_pop()
+            return None
+        return elapsed_ms / FOCUS_POP_DURATION_MS
+
+    def _stop_pop(self) -> None:
+        self._pop_timer.stop()
+        self._pop_index = QPersistentModelIndex()
+        self._pop_clock.invalidate()
+
+    def _update_pop(self) -> None:
+        if not self._pop_index.isValid():
+            self._stop_pop()
+            return
+        parent = self.parent()
+        if isinstance(parent, QAbstractItemView):
+            if not parent.isVisible() or not parent.hasFocus():
+                self._stop_pop()
+                return
+            parent.viewport().update(parent.visualRect(self._pop_index))
 
 
 def _icon_block_width(model: ListEntryUiModel) -> int:

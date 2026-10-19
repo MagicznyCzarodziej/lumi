@@ -15,6 +15,12 @@ from lumi.ui.components.list_entry_delegate.list_entry_delegate import (
     _marquee_offset,
     _title_font,
 )
+from lumi.ui.theme.motion import (
+    FOCUS_POP_START_SCALE,
+    FOCUS_POP_START_SCALE_COMPACT,
+    focus_pop_scale,
+    focus_pop_scale_compact,
+)
 from lumi.ui.theme.text_metrics import ink_single_line_height
 
 
@@ -105,3 +111,16 @@ def test_marquee_returns_smoothly_after_reaching_the_end() -> None:
     )
 
     assert travel_distance // 2 < returning_offset < travel_distance
+
+
+def test_focus_pop_never_scales_beyond_row_bounds() -> None:
+    scales = [focus_pop_scale(step / 20) for step in range(21)]
+
+    assert scales[0] == FOCUS_POP_START_SCALE
+    assert scales[-1] == 1.0
+    assert max(scales) <= 1.0
+
+
+def test_compact_focus_pop_uses_stronger_start_scale() -> None:
+    assert focus_pop_scale_compact(0.0) == FOCUS_POP_START_SCALE_COMPACT
+    assert focus_pop_scale_compact(0.0) < focus_pop_scale(0.0)

@@ -4,13 +4,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, QRect, QSize, Qt, Signal
+from PySide6.QtCore import QElapsedTimer, QPoint, QRect, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter
 from PySide6.QtWidgets import QApplication, QWidget
 
 from lumi.ui.components.keyboard_helpers import letter_key
 from lumi.ui.components.scroll_edge_fades import paint_scroll_edge_fades
 from lumi.ui.theme.colors import BACKGROUND, BLACK, TEXT_PRIMARY, WHITE
+from lumi.ui.theme.motion import (
+    FOCUS_POP_DURATION_MS,
+    FOCUS_POP_FRAME_INTERVAL_MS,
+    FOCUS_POP_GLOW_LIGHTENING_COMPACT,
+    focus_pop_highlight_color,
+    focus_pop_scale_compact,
+)
 from lumi.ui.theme.spacing import (
     ALPHABET_COLUMN_HEIGHT,
     ALPHABET_COLUMN_WIDTH,
@@ -59,6 +66,11 @@ class AlphabetColumn(QWidget):
         self._focused_index = 0
         self._active_letter: str | None = None
         self._scroll_y = 0
+        self._pop_index = -1
+        self._pop_clock = QElapsedTimer()
+        self._pop_timer = QTimer(self)
+        self._pop_timer.setInterval(FOCUS_POP_FRAME_INTERVAL_MS)
+        self._pop_timer.timeout.connect(self._update_focus_pop)
 
         self._fade_overlay = _AlphabetFadeOverlay(self)
         self._sync_fade_overlay()
@@ -72,6 +84,7 @@ class AlphabetColumn(QWidget):
     def set_symbols(self, symbols: list[str]) -> None:
         if symbols == self._symbols:
             return
+        self._stop_focus_pop()
         focused_letter: str | None = None
         if self._symbols and 0 <= self._focused_index < len(self._symbols):
             focused_letter = self._symbols[self._focused_index]
@@ -106,6 +119,7 @@ class AlphabetColumn(QWidget):
     def scroll_to_row(self, row: int) -> None:
         if row < 0 or row >= len(self._symbols):
             return
+        self._stop_focus_pop()
         self._focused_index = row
         self._scroll_y = self.scroll_offset_for_index(row)
         self._sync_fade_overlay()
@@ -141,6 +155,7 @@ class AlphabetColumn(QWidget):
         next_index = max(0, min(self._focused_index + delta, len(self._symbols) - 1))
         if next_index == self._focused_index:
             return
+        self._stop_focus_pop()
         self._focused_index = next_index
         self._scroll_y = self.scroll_offset_for_index(next_index)
         self._sync_fade_overlay()
@@ -181,6 +196,7 @@ class AlphabetColumn(QWidget):
         index = self._index_for_letter(letter)
         if index < 0:
             return
+        self._stop_focus_pop()
         self._focused_index = index
         self._scroll_y = self.scroll_offset_for_index(index)
         self._sync_fade_overlay()
@@ -215,15 +231,38 @@ class AlphabetColumn(QWidget):
         letter_font = QFont()
         letter_font.setPixelSize(FONT_SIZE_ALPHABET)
         painter.setFont(letter_font)
+        pop_progress = self._focus_pop_progress()
 
         for index, symbol in enumerate(self._symbols):
             rect = QRect(0, index * _LETTER_ROW_HEIGHT, _LETTER_SIZE, _LETTER_SIZE)
             focused = self._keyboard_focused() and index == self._focused_index
             active = symbol == self._active_letter
+            item_pop_progress = (
+                pop_progress
+                if focused and index == self._pop_index
+                else None
+            )
+            pop_scale = (
+                focus_pop_scale_compact(item_pop_progress)
+                if item_pop_progress is not None
+                else 1.0
+            )
+            if pop_scale != 1.0:
+                painter.save()
+                center = rect.center()
+                painter.translate(center.x(), center.y())
+                painter.scale(pop_scale, pop_scale)
+                painter.translate(-center.x(), -center.y())
 
             if focused:
                 painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QColor(WHITE))
+                painter.setBrush(
+                    focus_pop_highlight_color(
+                        QColor(WHITE),
+                        item_pop_progress,
+                        glow_lightening=FOCUS_POP_GLOW_LIGHTENING_COMPACT,
+                    )
+                )
                 painter.drawRoundedRect(rect, _CORNER_RADIUS, _CORNER_RADIUS)
                 painter.setPen(QColor(BLACK))
             elif active:
@@ -235,8 +274,39 @@ class AlphabetColumn(QWidget):
                 painter.setPen(QColor(255, 255, 255, 128))
 
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, symbol)
+            if pop_scale != 1.0:
+                painter.restore()
 
         painter.end()
+
+    def start_focus_pop(self) -> None:
+        if not self._symbols or not (0 <= self._focused_index < len(self._symbols)):
+            return
+        self._pop_index = self._focused_index
+        self._pop_clock.restart()
+        self._pop_timer.start()
+        self.update()
+
+    def _focus_pop_progress(self) -> float | None:
+        if self._pop_index != self._focused_index:
+            self._stop_focus_pop()
+            return None
+        elapsed_ms = self._pop_clock.elapsed()
+        if elapsed_ms >= FOCUS_POP_DURATION_MS:
+            self._stop_focus_pop()
+            return None
+        return elapsed_ms / FOCUS_POP_DURATION_MS
+
+    def _stop_focus_pop(self) -> None:
+        self._pop_timer.stop()
+        self._pop_index = -1
+        self._pop_clock.invalidate()
+
+    def _update_focus_pop(self) -> None:
+        if not self.isVisible() or not self._keyboard_focused():
+            self._stop_focus_pop()
+            return
+        self.update()
 
     def _sync_fade_overlay(self) -> None:
         self._fade_overlay.setGeometry(0, 0, self.width(), self.height())
