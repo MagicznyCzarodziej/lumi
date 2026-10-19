@@ -1,5 +1,5 @@
 #PosterWidget {
-    background-color: @BACKGROUND@;
+    background-color: @POSTER_BED@;
     border: none;
 }
 

@@ -11,29 +11,28 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWi
 from lumi.ui.icons.material_icons import IconKind, paint_icon
 from lumi.ui.theme.colors import TAG_ACCENT, WHITE
 from lumi.ui.theme.spacing import (
+    HEADER_TAG_GAP,
     HEADER_TAG_ICON_SIZE,
-    HEADER_TAG_PAD_LEFT,
-    HEADER_TAG_PAD_RIGHT,
+    HEADER_TAG_PAD_H,
+    HEADER_TAG_PAD_V,
     HEADER_TAG_ROW_MARGIN_V,
-    HEADER_TAG_TEXT_PAD_LEFT,
-    HEADER_TAG_TEXT_PAD_V,
     LIST_ROW_LEFT_INSET,
     SPACE_SM,
-    TAG_CHIP_GAP,
+    TAG_CHIP_ICON_GAP,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
 from lumi.ui.theme.text_metrics import ink_single_line_height, ink_text_width
-from lumi.ui.theme.typography import FONT_SIZE_TAG
+from lumi.ui.theme.typography import FONT_SIZE_XS
 
 
 class _TagChip(QWidget):
     """Purple pill tag painted in one pass."""
 
     _ICON_SIZE = HEADER_TAG_ICON_SIZE
-    _PAD_LEFT = HEADER_TAG_PAD_LEFT
-    _PAD_RIGHT = HEADER_TAG_PAD_RIGHT
-    _TEXT_PAD_LEFT = HEADER_TAG_TEXT_PAD_LEFT
-    _TEXT_PAD_V = HEADER_TAG_TEXT_PAD_V
+    _PAD_LEFT = HEADER_TAG_PAD_H
+    _PAD_RIGHT = HEADER_TAG_PAD_H
+    _TEXT_PAD_LEFT = TAG_CHIP_ICON_GAP
+    _TEXT_PAD_V = HEADER_TAG_PAD_V
     _ROW_MARGIN_V = HEADER_TAG_ROW_MARGIN_V
 
     def __init__(self, tag: str, parent: QWidget | None = None) -> None:
@@ -43,7 +42,7 @@ class _TagChip(QWidget):
 
     def _font(self) -> QFont:
         font = QFont()
-        font.setPixelSize(FONT_SIZE_TAG)
+        font.setPixelSize(FONT_SIZE_XS)
         return font
 
     def sizeHint(self) -> QSize:
@@ -109,7 +108,7 @@ class Header(QWidget):
         self._tags_container = QWidget()
         self._tags_layout = QHBoxLayout(self._tags_container)
         self._tags_layout.setContentsMargins(0, 0, 0, 0)
-        self._tags_layout.setSpacing(TAG_CHIP_GAP)
+        self._tags_layout.setSpacing(HEADER_TAG_GAP)
 
         text_block = QWidget()
         text_block_layout = QVBoxLayout(text_block)

@@ -278,8 +278,9 @@ class ListEntryDelegate(QStyledItemDelegate):
         title_font = _title_font()
         title_metrics = QFontMetrics(title_font)
         painter.setPen(QColor(TEXT_PRIMARY))
+        show_type_meta = selected and focused
         text_right = inner.right()
-        if focused:
+        if show_type_meta:
             text_right -= _icon_block_width(model) + LIST_TYPE_INDICATOR_TEXT_GAP
         text_width = max(0, text_right - inner.left())
 
@@ -329,7 +330,7 @@ class ListEntryDelegate(QStyledItemDelegate):
                 rect=alt_rect,
             )
 
-        if focused:
+        if show_type_meta:
             _paint_type_indicator(painter, inner, model)
         painter.restore()
 

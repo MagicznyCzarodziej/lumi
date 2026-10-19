@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QColor, QKeyEvent, QPainter
-from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPen
+from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLineEdit, QSizePolicy, QVBoxLayout, QWidget
 
 from lumi.ui.components.icon_label import IconLabel
 from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
@@ -21,15 +21,17 @@ from lumi.ui.theme.colors import (
     WHITE,
 )
 from lumi.ui.theme.spacing import (
-    ALPHABET_FOCUS_RING_WIDTH,
+    FOCUS_RING_WIDTH,
     ICON_SIZE,
     SPACE_SM,
     TOPBAR_CHROME_GAP,
     TOPBAR_CONTENT_MARGINS,
     TOPBAR_FILTER_GAP,
     TOPBAR_HIT_TARGET,
+    TOPBAR_ICON_RADIUS,
     TOPBAR_SEARCH_ICON_SIZE,
     TOPBAR_SEARCH_PADDING_H,
+    TOPBAR_SEARCH_RADIUS,
     TOPBAR_SEARCH_TEXT_GAP,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
@@ -59,26 +61,37 @@ class _ChromeIconButton(QWidget):
 
     def paintEvent(self, event) -> None:
         del event
-        rect = self.rect().adjusted(0, 0, -1, -1)
+        outer = self.rect()
+        ring = FOCUS_RING_WIDTH
+        radius = TOPBAR_ICON_RADIUS
+        fill_rect = outer.adjusted(ring, ring, -ring, -ring) if self.hasFocus() else outer
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         if self._selected:
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(TAG_ACCENT))
-            painter.drawRoundedRect(rect, TOPBAR_HIT_TARGET // 2, TOPBAR_HIT_TARGET // 2)
+            painter.drawRoundedRect(fill_rect, radius, radius)
             icon_color = TOPBAR_ACTIVE
         elif self.hasFocus():
-            painter.setPen(QColor(WHITE))
+            painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(QColor(TOPBAR_FOCUS_TINT))
-            painter.drawRoundedRect(rect, TOPBAR_HIT_TARGET // 2, TOPBAR_HIT_TARGET // 2)
+            painter.drawRoundedRect(fill_rect, radius, radius)
             icon_color = WHITE
         else:
             icon_color = TOPBAR_INACTIVE
-        icon_rect = rect.adjusted(
-            (rect.width() - ICON_SIZE) // 2,
-            (rect.height() - ICON_SIZE) // 2,
-            -((rect.width() - ICON_SIZE + 1) // 2),
-            -((rect.height() - ICON_SIZE + 1) // 2),
+        if self.hasFocus():
+            outline = outer.adjusted(ring // 2, ring // 2, -(ring + 1) // 2, -(ring + 1) // 2)
+            pen = QPen(QColor(WHITE), ring)
+            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(outline, radius + ring // 2, radius + ring // 2)
+        icon_target = fill_rect if self.hasFocus() else outer
+        icon_rect = icon_target.adjusted(
+            (icon_target.width() - ICON_SIZE) // 2,
+            (icon_target.height() - ICON_SIZE) // 2,
+            -((icon_target.width() - ICON_SIZE + 1) // 2),
+            -((icon_target.height() - ICON_SIZE + 1) // 2),
         )
         paint_icon(painter, icon_rect, self._icon, QColor(icon_color))
         painter.end()
@@ -87,6 +100,37 @@ class _ChromeIconButton(QWidget):
         self.setFocus(Qt.FocusReason.MouseFocusReason)
         self.clicked.emit()
         super().mousePressEvent(event)
+
+
+class _SearchPill(QWidget):
+    """Search field container with prototype kb-focus ring."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("searchPill")
+        self._search_focused = False
+
+    def set_search_focused(self, focused: bool) -> None:
+        if focused == self._search_focused:
+            return
+        self._search_focused = focused
+        self.update()
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        if not self._search_focused:
+            return
+        ring = FOCUS_RING_WIDTH
+        radius = TOPBAR_SEARCH_RADIUS
+        outline = self.rect().adjusted(ring // 2, ring // 2, -(ring + 1) // 2, -(ring + 1) // 2)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        pen = QPen(QColor(WHITE), ring)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(outline, radius, radius)
+        painter.end()
 
 
 class TopBar(QWidget):
@@ -111,9 +155,12 @@ class TopBar(QWidget):
         self._recent_button.clicked.connect(self.recent_requested.emit)
         self._recent_button.installEventFilter(self)
 
-        self._search_pill = QWidget(self)
-        self._search_pill.setObjectName("searchPill")
+        self._search_pill = _SearchPill(self)
         self._search_pill.setFixedHeight(TOPBAR_HIT_TARGET)
+        self._search_pill.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
         search_layout = QHBoxLayout(self._search_pill)
         search_layout.setContentsMargins(
             TOPBAR_SEARCH_PADDING_H,
@@ -246,6 +293,8 @@ class TopBar(QWidget):
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched is self._search:
+            if event.type() in (QEvent.Type.FocusIn, QEvent.Type.FocusOut):
+                self._search_pill.set_search_focused(self._search.hasFocus())
             if event.type() != QEvent.Type.KeyPress:
                 return super().eventFilter(watched, event)
             key_event = event

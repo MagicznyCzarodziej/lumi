@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from lumi.domain.poster.image_file_poster_provider import is_placeholder_poster_path
 from lumi.ui.poster_loader import PosterLoader
-from lumi.ui.theme.colors import BACKGROUND
+from lumi.ui.theme.colors import BACKGROUND, POSTER_BED
 from lumi.ui.theme.styles import apply_widget_stylesheet
 
 _POSTER_PATH_DEBOUNCE_MS = 150
@@ -97,9 +97,9 @@ class PosterWidget(QWidget):
     def paintEvent(self, event) -> None:
         if self._pixmap is not None and not self._pixmap.isNull():
             painter = QPainter(self)
-            painter.fillRect(self.rect(), QColor(BACKGROUND))
-
             target = self.rect()
+            painter.fillRect(target, QColor(POSTER_BED))
+
             scaled = self._pixmap.scaled(
                 target.size(),
                 Qt.AspectRatioMode.KeepAspectRatioByExpanding,
@@ -109,10 +109,16 @@ class PosterWidget(QWidget):
             y = target.y()
             painter.drawPixmap(x, y, scaled)
 
-            gradient = QLinearGradient(target.left(), 0, target.right(), 0)
-            gradient.setColorAt(0.0, QColor(0, 0, 0, 0))
-            gradient.setColorAt(1.0, QColor(BACKGROUND))
-            painter.fillRect(target, gradient)
+            horizontal = QLinearGradient(target.left(), 0, target.right(), 0)
+            horizontal.setColorAt(0.0, QColor(0, 0, 0, 0))
+            horizontal.setColorAt(0.5, QColor(0, 0, 0, 0))
+            horizontal.setColorAt(1.0, QColor(BACKGROUND))
+            painter.fillRect(target, horizontal)
+
+            vertical = QLinearGradient(0, target.bottom(), 0, target.top())
+            vertical.setColorAt(0.0, QColor(7, 8, 15, 191))
+            vertical.setColorAt(0.4, QColor(0, 0, 0, 0))
+            painter.fillRect(target, vertical)
             painter.end()
             return
 

@@ -62,7 +62,8 @@ class LibraryLayout(QWidget):
         alphabet_layout.setSpacing(0)
         alphabet_layout.addWidget(
             self.alphabet,
-            alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
+            stretch=1,
+            alignment=Qt.AlignmentFlag.AlignHCenter,
         )
         content_layout.addWidget(self.alphabet_rail)
 

@@ -46,7 +46,7 @@ class InlineTagRibbon(QWidget):
             self.hide()
             return
 
-        self._insert_button("All", None)
+        self._insert_button("All tags", None)
         for tag in self._tags:
             self._insert_button(tag[:1].upper() + tag[1:], tag)
         self._layout.addStretch(1)

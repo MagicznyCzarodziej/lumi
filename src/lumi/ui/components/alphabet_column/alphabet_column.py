@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QElapsedTimer, QPoint, QRect, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter, QPen
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QSizePolicy, QWidget
 
 from lumi.ui.components.keyboard_helpers import letter_key
 from lumi.ui.components.scroll_edge_fades import paint_scroll_edge_fades
@@ -26,7 +26,6 @@ from lumi.ui.theme.motion import (
     focus_pop_scale_compact,
 )
 from lumi.ui.theme.spacing import (
-    ALPHABET_COLUMN_HEIGHT,
     ALPHABET_COLUMN_WIDTH,
     ALPHABET_FADE_HEIGHT,
     ALPHABET_FOCUS_RING_WIDTH,
@@ -39,7 +38,6 @@ from lumi.ui.theme.styles import apply_widget_stylesheet
 from lumi.ui.theme.typography import FONT_SIZE_ALPHABET
 
 _COLUMN_WIDTH = ALPHABET_COLUMN_WIDTH
-_COLUMN_HEIGHT = ALPHABET_COLUMN_HEIGHT
 _LETTER_WIDTH = ALPHABET_LETTER_WIDTH
 _LETTER_HEIGHT = ALPHABET_LETTER_HEIGHT
 _LETTER_ROW_HEIGHT = _LETTER_HEIGHT + ALPHABET_LETTER_GAP
@@ -70,7 +68,8 @@ class AlphabetColumn(QWidget):
         self.setObjectName("AlphabetColumn")
         apply_widget_stylesheet(self, Path(__file__).with_suffix(".qss"))
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setFixedSize(_COLUMN_WIDTH, _COLUMN_HEIGHT)
+        self.setFixedWidth(_COLUMN_WIDTH)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
 
         self._symbols: list[str] = []
