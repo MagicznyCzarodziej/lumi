@@ -14,7 +14,7 @@ from lumi.ui.components.keyboard_helpers import is_escape_key
 from lumi.ui.icons.material_icons import IconKind, paint_icon
 from lumi.ui.screens.library.controller import EntriesFilter
 from lumi.ui.theme.colors import (
-    TAG_ACCENT,
+    ALPHABET_ACTIVE_TINT,
     TOPBAR_ACTIVE,
     TOPBAR_FOCUS_TINT,
     TOPBAR_INACTIVE,
@@ -69,7 +69,7 @@ class _ChromeIconButton(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         if self._selected:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(TAG_ACCENT))
+            painter.setBrush(QColor(ALPHABET_ACTIVE_TINT))
             painter.drawRoundedRect(fill_rect, radius, radius)
             icon_color = TOPBAR_ACTIVE
         elif self.hasFocus():

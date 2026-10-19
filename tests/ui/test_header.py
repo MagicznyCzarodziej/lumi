@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from lumi.ui.layouts.header.header import Header, _TagChip
-from lumi.ui.theme.spacing import TAG_CHIP_GAP
+from lumi.ui.theme.spacing import HEADER_TAG_GAP
 
 
 def test_header_places_tags_in_a_compact_horizontal_ribbon(qtbot) -> None:
@@ -22,4 +22,4 @@ def test_header_places_tags_in_a_compact_horizontal_ribbon(qtbot) -> None:
 
     assert len(chips) == 2
     assert chips[0].y() == chips[1].y()
-    assert chips[1].x() - chips[0].x() - chips[0].width() == TAG_CHIP_GAP
+    assert chips[1].x() - chips[0].x() - chips[0].width() == HEADER_TAG_GAP

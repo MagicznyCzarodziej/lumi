@@ -132,7 +132,7 @@ def test_chrome_tag_ribbon_and_entries_form_a_vertical_focus_path(qtbot) -> None
     layout = screen._layout
     ribbon = layout.top_bar.findChild(InlineTagRibbon)
     assert ribbon is not None
-    all_tags = next(button for button in ribbon.findChildren(QPushButton) if button.text() == "All")
+    all_tags = next(button for button in ribbon.findChildren(QPushButton) if button.text() == "All tags")
 
     layout.top_bar._rebuild_button.setFocus(Qt.FocusReason.OtherFocusReason)
     qtbot.wait(10)

@@ -23,7 +23,7 @@ def test_tag_selection_emits_filter_value_and_all_clears_it(qtbot) -> None:
     ribbon.tag_selected.connect(selected.append)
 
     qtbot.mouseClick(_button_with_text(ribbon, "Action"), Qt.MouseButton.LeftButton)
-    qtbot.mouseClick(_button_with_text(ribbon, "All"), Qt.MouseButton.LeftButton)
+    qtbot.mouseClick(_button_with_text(ribbon, "All tags"), Qt.MouseButton.LeftButton)
 
     assert selected == ["action", None]
 
@@ -35,7 +35,7 @@ def test_all_tag_is_the_leading_inline_filter(qtbot) -> None:
 
     labels = [button.text() for button in ribbon.findChildren(QPushButton)]
 
-    assert labels == ["All", "Action", "Drama"]
+    assert labels == ["All tags", "Action", "Drama"]
 
 
 def test_boundary_arrow_keys_emit_focus_intents(qtbot) -> None:
@@ -50,7 +50,7 @@ def test_boundary_arrow_keys_emit_focus_intents(qtbot) -> None:
     ribbon.focus_previous_requested.connect(lambda: previous_requested.append(True))
     ribbon.focus_next_requested.connect(lambda: next_requested.append(True))
 
-    first = _button_with_text(ribbon, "All")
+    first = _button_with_text(ribbon, "All tags")
     first.setFocus()
     qtbot.keyClick(first, Qt.Key.Key_Left)
 

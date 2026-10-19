@@ -9,17 +9,22 @@
     padding: 0;
 }
 
-#EntriesList QScrollBar:vertical,
-#EntriesList QScrollBar:horizontal {
-    width: 0px;
-    height: 0px;
+#EntriesList QScrollBar:vertical {
+    width: 8px;
     background: transparent;
+    margin: 0;
 }
 
-#EntriesList QScrollBar::handle:vertical,
-#EntriesList QScrollBar::handle:horizontal,
+#EntriesList QScrollBar::handle:vertical {
+    background-color: @LIST_SCROLLBAR_THUMB@;
+    min-height: 24px;
+    border-radius: 999px;
+}
+
 #EntriesList QScrollBar::add-line:vertical,
 #EntriesList QScrollBar::sub-line:vertical,
+#EntriesList QScrollBar:horizontal,
+#EntriesList QScrollBar::handle:horizontal,
 #EntriesList QScrollBar::add-line:horizontal,
 #EntriesList QScrollBar::sub-line:horizontal {
     width: 0px;

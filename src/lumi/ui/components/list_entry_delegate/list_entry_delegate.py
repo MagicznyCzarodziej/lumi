@@ -322,7 +322,7 @@ class ListEntryDelegate(QStyledItemDelegate):
             _draw_elided_text(painter, text=display_name, font=title_font, rect=title_rect)
 
         if alt_font is not None and alt_rect is not None:
-            painter.setPen(QColor(TEXT_PRIMARY))
+            painter.setPen(QColor(TEXT_MUTED))
             _draw_elided_text(
                 painter,
                 text=model.name.alternative_name or "",

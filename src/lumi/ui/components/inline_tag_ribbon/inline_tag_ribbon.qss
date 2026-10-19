@@ -12,10 +12,15 @@
 }
 
 #InlineTagRibbon QPushButton#tagRibbonButton[selected="true"] {
-    background-color: @TAG_ACCENT@;
+    background-color: @ALPHABET_ACTIVE_TINT@;
     color: @TOPBAR_ACTIVE@;
 }
 
 #InlineTagRibbon QPushButton#tagRibbonButton:focus {
-    border: @ALPHABET_FOCUS_RING_WIDTH@px solid @WHITE@;
+    border: @FOCUS_RING_WIDTH@px solid @WHITE@;
+    color: @TEXT_PRIMARY@;
+}
+
+#InlineTagRibbon QPushButton#tagRibbonButton[selected="false"]:focus {
+    background-color: @TOPBAR_FOCUS_TINT@;
 }
