@@ -13,8 +13,8 @@
     background-color: transparent;
     border: none;
     color: @TEXT_PRIMARY@;
-    font-size: @FONT_SIZE_TOPBAR@px;
-    padding-left: @SPACE_SM@px;
+    font-size: @FONT_SIZE_SEARCH@px;
+    padding-left: @TOPBAR_SEARCH_TEXT_GAP@px;
 }
 
 #TopBar QLineEdit#searchField:disabled {

@@ -13,7 +13,12 @@ from lumi.ui.components.keyboard_helpers import is_escape_key
 from lumi.ui.icons.material_icons import IconKind
 from lumi.ui.screens.library.controller import EntriesFilter
 from lumi.ui.theme.colors import BLACK, STAR_INACTIVE, TEXT_PRIMARY, TOPBAR_INACTIVE, WHITE
-from lumi.ui.theme.spacing import CORNER_RADIUS_SM, SPACE_MD, TOPBAR_FILTER_PAD_V
+from lumi.ui.theme.spacing import (
+    CORNER_RADIUS_SM,
+    TOPBAR_CONTENT_INSET,
+    TOPBAR_FILTER_PAD_H,
+    TOPBAR_FILTER_PAD_V,
+)
 from lumi.ui.theme.styles import apply_widget_stylesheet
 from lumi.ui.theme.typography import FONT_SIZE_TOPBAR
 
@@ -25,7 +30,7 @@ class _FilterButton(QWidget):
 
     _RADIUS = CORNER_RADIUS_SM
     _PAD_V = TOPBAR_FILTER_PAD_V
-    _PAD_H = SPACE_MD
+    _PAD_H = TOPBAR_FILTER_PAD_H
 
     def __init__(self, label: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -119,7 +124,12 @@ class TopBar(QWidget):
         star_icon.setObjectName("starIcon")
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(SPACE_MD, SPACE_MD, SPACE_MD, 0)
+        layout.setContentsMargins(
+            TOPBAR_CONTENT_INSET,
+            TOPBAR_CONTENT_INSET,
+            TOPBAR_CONTENT_INSET,
+            0,
+        )
         layout.addWidget(search_icon)
         layout.addWidget(self._search, stretch=1)
         layout.addLayout(button_row)

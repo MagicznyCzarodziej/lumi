@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from math import ceil
 
-from PySide6.QtCore import QElapsedTimer, QPersistentModelIndex, QPointF, QRect, QRectF, Qt, QSize, QTimer
-from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QImage, QLinearGradient, QPainter, QPainterPath
+from PySide6.QtCore import QElapsedTimer, QPersistentModelIndex, QRect, Qt, QSize, QTimer
+from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QImage, QLinearGradient, QPainter
 from PySide6.QtWidgets import QAbstractItemView, QStyledItemDelegate, QStyle, QStyleOptionViewItem, QWidget
 
 from lumi.ui.components.list_entry import ListEntryTypeKind, ListEntryUiModel, NameDisplayStrategy
 from lumi.ui.icons.material_icons import IconKind, paint_icon
 from lumi.ui.theme.colors import (
-    ENTRY_FOCUS_START,
-    ENTRY_FOCUS_UNFOCUSED_ALPHA,
+    LIST_SELECTION_ACCENT,
+    LIST_SELECTION_TINT,
     TEXT_MUTED,
     TEXT_PRIMARY,
 )
@@ -25,11 +25,13 @@ from lumi.ui.theme.motion import (
 from lumi.ui.theme.scale import scaled as s
 from lumi.ui.theme.spacing import (
     CORNER_RADIUS_SM,
-    ICON_GAP_MD,
-    ICON_GAP_SM,
-    ICON_SIZE,
+    LIST_ROW_LINE_GAP,
     LIST_ROW_MARGINS,
     LIST_ROW_SPACING,
+    LIST_SELECTION_ACCENT_WIDTH,
+    LIST_TYPE_INDICATOR_GAP,
+    LIST_TYPE_INDICATOR_ICON_SIZE,
+    LIST_TYPE_INDICATOR_TEXT_GAP,
 )
 from lumi.ui.theme.text_metrics import ink_single_line_height, ink_text_width
 from lumi.ui.theme.typography import FONT_SIZE_COUNT, FONT_SIZE_LIST, FONT_SIZE_LIST_ALT
@@ -38,7 +40,6 @@ _MARQUEE_FRAME_INTERVAL_MS = 33
 _MARQUEE_START_DELAY_MS = 900
 _MARQUEE_END_DELAY_MS = 700
 _MARQUEE_SPEED_PX_PER_SECOND = s(40)
-_ICON_TEXT_GAP = s(8)
 _TEXT_FADE_WIDTH = s(14)
 
 
@@ -250,16 +251,17 @@ class ListEntryDelegate(QStyledItemDelegate):
         focused = option.state & QStyle.StateFlag.State_HasFocus
 
         if selected:
-            path = QPainterPath()
-            path.addRoundedRect(QRectF(row_rect), self._CORNER_RADIUS, self._CORNER_RADIUS)
-            gradient = QLinearGradient(QPointF(row_rect.left(), row_rect.top()), QPointF(row_rect.right(), row_rect.top()))
-            start = focus_pop_highlight_color(QColor(ENTRY_FOCUS_START), pop_progress)
-            if not focused:
-                start.setAlpha(ENTRY_FOCUS_UNFOCUSED_ALPHA)
-            gradient.setColorAt(0.0, start)
-            gradient.setColorAt(0.9, QColor(0x0A, 0x0E, 0x23, 0))
-            gradient.setColorAt(1.0, Qt.GlobalColor.transparent)
-            painter.fillPath(path, QBrush(gradient))
+            painter.fillRect(
+                row_rect,
+                focus_pop_highlight_color(QColor(LIST_SELECTION_TINT), pop_progress),
+            )
+            painter.fillRect(
+                row_rect.left(),
+                row_rect.top(),
+                LIST_SELECTION_ACCENT_WIDTH,
+                row_rect.height(),
+                focus_pop_highlight_color(QColor(LIST_SELECTION_ACCENT), pop_progress),
+            )
 
         display_name = (
             model.name.sort_name
@@ -272,18 +274,23 @@ class ListEntryDelegate(QStyledItemDelegate):
         painter.setPen(QColor(TEXT_PRIMARY))
         text_right = inner.right()
         if focused:
-            text_right -= _icon_block_width(model) + _ICON_TEXT_GAP
+            text_right -= _icon_block_width(model) + LIST_TYPE_INDICATOR_TEXT_GAP
         text_width = max(0, text_right - inner.left())
 
         title_height = _single_line_height(display_name, title_font)
         if model.name.alternative_name:
             alt_font = _alt_font()
             alt_height = _single_line_height(model.name.alternative_name, alt_font)
-            block_height = title_height + alt_height
+            block_height = title_height + LIST_ROW_LINE_GAP + alt_height
             block_top = inner.top() + max(0, (inner.height() - block_height) // 2)
 
             title_rect = QRect(inner.left(), block_top, text_width, title_height)
-            alt_rect = QRect(inner.left(), block_top + title_height, text_width, alt_height)
+            alt_rect = QRect(
+                inner.left(),
+                block_top + title_height + LIST_ROW_LINE_GAP,
+                text_width,
+                alt_height,
+            )
         else:
             block_top = inner.top() + max(0, (inner.height() - title_height) // 2)
             title_rect = QRect(inner.left(), block_top, text_width, title_height)
@@ -335,7 +342,10 @@ class ListEntryDelegate(QStyledItemDelegate):
             )
             height = top + bottom + _single_line_height(display_name, _title_font())
             if model.name.alternative_name:
-                height += _single_line_height(model.name.alternative_name, _alt_font())
+                height += (
+                    LIST_ROW_LINE_GAP
+                    + _single_line_height(model.name.alternative_name, _alt_font())
+                )
             height += LIST_ROW_SPACING
         return QSize(width, height)
 
@@ -404,14 +414,14 @@ class ListEntryDelegate(QStyledItemDelegate):
 
 
 def _icon_block_width(model: ListEntryUiModel) -> int:
-    icon_size = ICON_SIZE
+    icon_size = LIST_TYPE_INDICATOR_ICON_SIZE
     kind = model.entry_type.kind
     if kind is ListEntryTypeKind.SINGLE:
-        return icon_size + ICON_GAP_MD
+        return icon_size
     count_font = QFont()
     count_font.setPixelSize(FONT_SIZE_COUNT)
     count_width = QFontMetrics(count_font).horizontalAdvance(str(model.entry_type.count))
-    return icon_size + ICON_GAP_SM + count_width
+    return icon_size + LIST_TYPE_INDICATOR_GAP + count_width
 
 
 def _entry_type_icon(kind: ListEntryTypeKind) -> IconKind:
@@ -427,12 +437,12 @@ def _entry_type_icon(kind: ListEntryTypeKind) -> IconKind:
 def _paint_type_indicator(painter: QPainter, inner, model: ListEntryUiModel) -> None:
     kind = model.entry_type.kind
     color = QColor(TEXT_MUTED)
-    icon_size = ICON_SIZE
+    icon_size = LIST_TYPE_INDICATOR_ICON_SIZE
     right = inner.right()
     icon_y = inner.top() + (inner.height() - icon_size) // 2
 
     if kind is ListEntryTypeKind.SINGLE:
-        icon_rect = QRect(right - icon_size - ICON_GAP_MD, icon_y, icon_size, icon_size)
+        icon_rect = QRect(right - icon_size, icon_y, icon_size, icon_size)
         paint_icon(painter, icon_rect, IconKind.PLAY_CIRCLE, color)
         return
 
@@ -442,7 +452,12 @@ def _paint_type_indicator(painter: QPainter, inner, model: ListEntryUiModel) -> 
     count_metrics = QFontMetrics(count_font)
     count_width = count_metrics.horizontalAdvance(count_text)
 
-    icon_rect = QRect(right - count_width - ICON_GAP_SM - icon_size, icon_y, icon_size, icon_size)
+    icon_rect = QRect(
+        right - count_width - LIST_TYPE_INDICATOR_GAP - icon_size,
+        icon_y,
+        icon_size,
+        icon_size,
+    )
     paint_icon(painter, icon_rect, _entry_type_icon(kind), color)
 
     painter.setFont(count_font)

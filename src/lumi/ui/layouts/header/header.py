@@ -21,7 +21,7 @@ from lumi.ui.theme.spacing import (
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
 from lumi.ui.theme.text_metrics import ink_single_line_height, ink_text_width
-from lumi.ui.theme.typography import FONT_SIZE_SM
+from lumi.ui.theme.typography import FONT_SIZE_TAG
 
 
 class _TagChip(QWidget):
@@ -41,7 +41,7 @@ class _TagChip(QWidget):
 
     def _font(self) -> QFont:
         font = QFont()
-        font.setPixelSize(FONT_SIZE_SM)
+        font.setPixelSize(FONT_SIZE_TAG)
         return font
 
     def sizeHint(self) -> QSize:

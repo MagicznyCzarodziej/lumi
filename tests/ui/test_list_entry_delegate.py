@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import QRect, Qt
-from PySide6.QtGui import QFontMetrics, QImage, QPainter, QStandardItem, QStandardItemModel
+from PySide6.QtGui import QColor, QFontMetrics, QImage, QPainter, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem
 
 from lumi.domain.library.models import Name
@@ -20,6 +20,14 @@ from lumi.ui.theme.motion import (
     FOCUS_POP_START_SCALE_COMPACT,
     focus_pop_scale,
     focus_pop_scale_compact,
+)
+from lumi.ui.theme.colors import LIST_SELECTION_ACCENT, LIST_SELECTION_TINT
+from lumi.ui.theme.spacing import (
+    LIST_ROW_LINE_GAP,
+    LIST_ROW_MARGINS,
+    LIST_SELECTION_ACCENT_WIDTH,
+    LIST_TYPE_INDICATOR_GAP,
+    LIST_TYPE_INDICATOR_ICON_SIZE,
 )
 from lumi.ui.theme.text_metrics import ink_single_line_height
 
@@ -90,6 +98,46 @@ def test_selected_overflowing_title_starts_marquee() -> None:
 
     assert delegate._marquee_timer.isActive()
     delegate._stop_marquee()
+
+
+def test_selected_row_paints_three_pixel_accent_and_subtle_tint() -> None:
+    QApplication.instance() or QApplication([])
+    entry = ListEntryUiModel(
+        name=Name(name="Alien"),
+        entry_type=ListEntryType.grouping(1),
+    )
+    item = QStandardItem()
+    item.setData(entry, Qt.ItemDataRole.UserRole)
+    model = QStandardItemModel()
+    model.appendRow(item)
+    index = model.index(0, 0)
+
+    delegate = ListEntryDelegate()
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 240, delegate.sizeHint(option, index).height())
+    option.state = QStyle.StateFlag.State_Selected
+    image = QImage(option.rect.size(), QImage.Format.Format_ARGB32)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+
+    delegate.paint(painter, option, index)
+    painter.end()
+
+    center_y = option.rect.height() // 2
+    assert image.pixelColor(0, center_y) == QColor(LIST_SELECTION_ACCENT)
+    tint = image.pixelColor(LIST_SELECTION_ACCENT_WIDTH + 4, center_y)
+    expected_tint = QColor(LIST_SELECTION_TINT)
+    assert tint.alpha() == expected_tint.alpha()
+    assert abs(tint.red() - expected_tint.red()) <= 8
+    assert abs(tint.green() - expected_tint.green()) <= 8
+    assert abs(tint.blue() - expected_tint.blue()) <= 8
+
+
+def test_list_row_uses_shared_a3_spacing_and_indicator_metrics() -> None:
+    assert LIST_ROW_MARGINS == (18, 14, 24, 14)
+    assert LIST_ROW_LINE_GAP == 6
+    assert LIST_TYPE_INDICATOR_ICON_SIZE == 36
+    assert LIST_TYPE_INDICATOR_GAP == 10
 
 
 def test_marquee_waits_before_scrolling() -> None:

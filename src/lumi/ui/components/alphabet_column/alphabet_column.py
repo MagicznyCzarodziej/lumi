@@ -5,12 +5,19 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QElapsedTimer, QPoint, QRect, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter
+from PySide6.QtGui import QColor, QFont, QKeyEvent, QPainter, QPen
 from PySide6.QtWidgets import QApplication, QWidget
 
 from lumi.ui.components.keyboard_helpers import letter_key
 from lumi.ui.components.scroll_edge_fades import paint_scroll_edge_fades
-from lumi.ui.theme.colors import BACKGROUND, BLACK, TEXT_PRIMARY, WHITE
+from lumi.ui.theme.colors import (
+    ALPHABET_ACTIVE_TEXT,
+    ALPHABET_ACTIVE_TINT,
+    ALPHABET_FOCUS_TINT,
+    ALPHABET_INACTIVE_TEXT,
+    BACKGROUND,
+    WHITE,
+)
 from lumi.ui.theme.motion import (
     FOCUS_POP_DURATION_MS,
     FOCUS_POP_FRAME_INTERVAL_MS,
@@ -22,18 +29,22 @@ from lumi.ui.theme.spacing import (
     ALPHABET_COLUMN_HEIGHT,
     ALPHABET_COLUMN_WIDTH,
     ALPHABET_FADE_HEIGHT,
-    ALPHABET_LETTER_SIZE,
-    CORNER_RADIUS_SM,
+    ALPHABET_FOCUS_RING_WIDTH,
+    ALPHABET_LETTER_GAP,
+    ALPHABET_LETTER_HEIGHT,
+    ALPHABET_LETTER_RADIUS,
+    ALPHABET_LETTER_WIDTH,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
 from lumi.ui.theme.typography import FONT_SIZE_ALPHABET
 
 _COLUMN_WIDTH = ALPHABET_COLUMN_WIDTH
 _COLUMN_HEIGHT = ALPHABET_COLUMN_HEIGHT
-_LETTER_SIZE = ALPHABET_LETTER_SIZE
-_LETTER_ROW_HEIGHT = _LETTER_SIZE
+_LETTER_WIDTH = ALPHABET_LETTER_WIDTH
+_LETTER_HEIGHT = ALPHABET_LETTER_HEIGHT
+_LETTER_ROW_HEIGHT = _LETTER_HEIGHT + ALPHABET_LETTER_GAP
 _FADE_HEIGHT = ALPHABET_FADE_HEIGHT
-_CORNER_RADIUS = CORNER_RADIUS_SM
+_CORNER_RADIUS = ALPHABET_LETTER_RADIUS
 
 
 class _AlphabetFadeOverlay(QWidget):
@@ -234,7 +245,12 @@ class AlphabetColumn(QWidget):
         pop_progress = self._focus_pop_progress()
 
         for index, symbol in enumerate(self._symbols):
-            rect = QRect(0, index * _LETTER_ROW_HEIGHT, _LETTER_SIZE, _LETTER_SIZE)
+            rect = QRect(
+                (_COLUMN_WIDTH - _LETTER_WIDTH) // 2,
+                index * _LETTER_ROW_HEIGHT,
+                _LETTER_WIDTH,
+                _LETTER_HEIGHT,
+            )
             focused = self._keyboard_focused() and index == self._focused_index
             active = symbol == self._active_letter
             item_pop_progress = (
@@ -255,23 +271,23 @@ class AlphabetColumn(QWidget):
                 painter.translate(-center.x(), -center.y())
 
             if focused:
-                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setPen(QPen(QColor(WHITE), ALPHABET_FOCUS_RING_WIDTH))
                 painter.setBrush(
                     focus_pop_highlight_color(
-                        QColor(WHITE),
+                        QColor(ALPHABET_ACTIVE_TINT if active else ALPHABET_FOCUS_TINT),
                         item_pop_progress,
                         glow_lightening=FOCUS_POP_GLOW_LIGHTENING_COMPACT,
                     )
                 )
                 painter.drawRoundedRect(rect, _CORNER_RADIUS, _CORNER_RADIUS)
-                painter.setPen(QColor(BLACK))
+                painter.setPen(QColor(ALPHABET_ACTIVE_TEXT if active else WHITE))
             elif active:
                 painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QColor(255, 255, 255, 77))
+                painter.setBrush(QColor(ALPHABET_ACTIVE_TINT))
                 painter.drawRoundedRect(rect, _CORNER_RADIUS, _CORNER_RADIUS)
-                painter.setPen(QColor(TEXT_PRIMARY))
+                painter.setPen(QColor(ALPHABET_ACTIVE_TEXT))
             else:
-                painter.setPen(QColor(255, 255, 255, 128))
+                painter.setPen(QColor(ALPHABET_INACTIVE_TEXT))
 
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, symbol)
             if pop_scale != 1.0:

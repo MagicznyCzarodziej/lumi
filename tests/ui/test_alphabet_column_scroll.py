@@ -2,7 +2,17 @@
 
 from __future__ import annotations
 
+from PySide6.QtGui import QColor, QImage, QPainter
+
 from lumi.ui.components.alphabet_column import AlphabetColumn
+from lumi.ui.theme.colors import ALPHABET_ACTIVE_TINT, BACKGROUND, WHITE
+from lumi.ui.theme.spacing import (
+    ALPHABET_COLUMN_WIDTH,
+    ALPHABET_FOCUS_RING_WIDTH,
+    ALPHABET_LETTER_GAP,
+    ALPHABET_LETTER_HEIGHT,
+    ALPHABET_LETTER_WIDTH,
+)
 
 
 def test_alphabet_scroll_zones(qtbot) -> None:
@@ -45,6 +55,58 @@ def test_alphabet_scroll_zones(qtbot) -> None:
 
     column.scroll_to_row(column.count() - 1)
     assert column._scroll_y == max_scroll
+
+
+def test_alphabet_uses_compact_a_to_z_rail_metrics() -> None:
+    column = AlphabetColumn()
+    column.set_symbols(["#"] + list("ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+
+    assert (ALPHABET_COLUMN_WIDTH, ALPHABET_LETTER_WIDTH, ALPHABET_LETTER_HEIGHT) == (
+        48,
+        36,
+        34,
+    )
+    assert ALPHABET_LETTER_GAP == 4
+    assert column.width() == ALPHABET_COLUMN_WIDTH
+    assert column.scroll_offset_for_index(column.count() - 1) == (
+        column.count() * (ALPHABET_LETTER_HEIGHT + ALPHABET_LETTER_GAP)
+        - column.height()
+    )
+
+
+def test_alphabet_active_state_has_a_tint_and_focus_ring(qtbot) -> None:
+    column = AlphabetColumn()
+    qtbot.addWidget(column)
+    column.set_symbols(["A"])
+    column.set_active_letter("A")
+    column.show()
+    qtbot.waitExposed(column)
+    column.clearFocus()
+    qtbot.wait(0)
+
+    image = column.grab().toImage()
+    device_scale = image.devicePixelRatio()
+    letter_left = (ALPHABET_COLUMN_WIDTH - ALPHABET_LETTER_WIDTH) // 2
+    center_y = ALPHABET_LETTER_HEIGHT // 2
+
+    expected = QImage(1, 1, QImage.Format.Format_ARGB32)
+    expected.fill(QColor(BACKGROUND))
+    painter = QPainter(expected)
+    painter.fillRect(0, 0, 1, 1, QColor(ALPHABET_ACTIVE_TINT))
+    painter.end()
+    assert image.pixelColor(
+        round((letter_left + 1) * device_scale),
+        round(center_y * device_scale),
+    ) == expected.pixelColor(0, 0)
+
+    column.setFocus()
+    qtbot.wait(0)
+    focused_image = column.grab().toImage()
+    focused_device_scale = focused_image.devicePixelRatio()
+    assert focused_image.pixelColor(
+        round((letter_left - ALPHABET_FOCUS_RING_WIDTH // 2) * focused_device_scale),
+        round(center_y * focused_device_scale),
+    ) == QColor(WHITE)
 
 
 def test_alphabet_keyboard_scroll_is_gradual(qtbot) -> None:
