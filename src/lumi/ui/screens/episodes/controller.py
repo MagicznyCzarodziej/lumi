@@ -31,6 +31,7 @@ def build_episodes_state(
         poster_path=episodes_group.root_relative_poster_path,
         breadcrumbs=breadcrumbs,
         title=episodes_group.name.name,
+        subtitle=episodes_group.name.alternative_name,
         tags=tags,
         entries=[
             ListEntryUiModel(

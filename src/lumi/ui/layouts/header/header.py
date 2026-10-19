@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QRect, QRectF, QSize
 from PySide6.QtGui import QFont, QFontMetrics, QPainter, QColor
-from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from lumi.ui.icons.material_icons import IconKind, paint_icon
 from lumi.ui.theme.colors import TAG_ACCENT, WHITE
@@ -18,6 +18,7 @@ from lumi.ui.theme.spacing import (
     HEADER_TAG_TEXT_PAD_LEFT,
     HEADER_TAG_TEXT_PAD_V,
     SPACE_SM,
+    TAG_CHIP_GAP,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
 from lumi.ui.theme.text_metrics import ink_single_line_height, ink_text_width
@@ -105,9 +106,9 @@ class Header(QWidget):
         self._subtitle.setObjectName("subtitle")
         self._subtitle.setWordWrap(True)
         self._tags_container = QWidget()
-        self._tags_layout = QVBoxLayout(self._tags_container)
+        self._tags_layout = QHBoxLayout(self._tags_container)
         self._tags_layout.setContentsMargins(0, 0, 0, 0)
-        self._tags_layout.setSpacing(0)
+        self._tags_layout.setSpacing(TAG_CHIP_GAP)
 
         text_block = QWidget()
         text_block_layout = QVBoxLayout(text_block)
@@ -151,5 +152,6 @@ class Header(QWidget):
             self._tags_container.show()
             for tag in tag_values:
                 self._tags_layout.addWidget(_TagChip(tag), alignment=Qt.AlignmentFlag.AlignLeft)
+            self._tags_layout.addStretch()
         else:
             self._tags_container.hide()
