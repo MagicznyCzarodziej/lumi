@@ -1,0 +1,17 @@
+#RecentWatchList {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+#RecentWatchList::item {
+    border: none;
+    padding: 0;
+}
+
+#RecentWatchList QScrollBar:vertical,
+#RecentWatchList QScrollBar:horizontal {
+    width: 0;
+    height: 0;
+    background: transparent;
+}
