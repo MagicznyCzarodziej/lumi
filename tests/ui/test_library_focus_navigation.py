@@ -5,7 +5,7 @@ from __future__ import annotations
 from tests.constants import MOCK_LIBRARY_ROOT
 
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QStackedWidget
+from PySide6.QtWidgets import QApplication, QLineEdit, QStackedWidget, QWidget
 
 from lumi.config.settings import Settings
 from lumi.container import build_container
@@ -132,7 +132,11 @@ def test_chrome_tag_ribbon_and_entries_form_a_vertical_focus_path(qtbot) -> None
     layout = screen._layout
     ribbon = layout.top_bar.findChild(InlineTagRibbon)
     assert ribbon is not None
-    all_tags = next(button for button in ribbon.findChildren(QPushButton) if button.text() == "All tags")
+    all_tags = next(
+        button
+        for button in ribbon.findChildren(QWidget)
+        if button.objectName() == "tagRibbonButton" and button.text() == "All tags"
+    )
 
     layout.top_bar._rebuild_button.setFocus(Qt.FocusReason.OtherFocusReason)
     qtbot.wait(10)
@@ -226,8 +230,8 @@ def test_inline_tag_ribbon_composes_with_search_and_type_filters(qtbot) -> None:
 
     sci_fi = next(
         button
-        for button in ribbon.findChildren(QPushButton)
-        if button.text() == "Sci-fi"
+        for button in ribbon.findChildren(QWidget)
+        if button.objectName() == "tagRibbonButton" and button.text() == "Sci-fi"
     )
     qtbot.mouseClick(sci_fi, Qt.MouseButton.LeftButton)
 

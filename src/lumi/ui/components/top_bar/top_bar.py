@@ -18,6 +18,7 @@ from lumi.ui.theme.colors import (
     TOPBAR_ACTIVE,
     TOPBAR_FOCUS_TINT,
     TOPBAR_INACTIVE,
+    TOPBAR_SURFACE,
     WHITE,
 )
 from lumi.ui.theme.spacing import (
@@ -117,19 +118,23 @@ class _SearchPill(QWidget):
         self.update()
 
     def paintEvent(self, event) -> None:
-        super().paintEvent(event)
-        if not self._search_focused:
-            return
+        del event
+        outer = self.rect()
         ring = FOCUS_RING_WIDTH
-        radius = TOPBAR_SEARCH_RADIUS
-        outline = self.rect().adjusted(ring // 2, ring // 2, -(ring + 1) // 2, -(ring + 1) // 2)
+        fill = outer.adjusted(ring, ring, -ring, -ring) if self._search_focused else outer
+        radius = min(TOPBAR_SEARCH_RADIUS, fill.height() // 2)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        pen = QPen(QColor(WHITE), ring)
-        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-        painter.setPen(pen)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRoundedRect(outline, radius, radius)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(TOPBAR_SURFACE))
+        painter.drawRoundedRect(fill, radius, radius)
+        if self._search_focused:
+            outline = outer.adjusted(ring // 2, ring // 2, -(ring + 1) // 2, -(ring + 1) // 2)
+            pen = QPen(QColor(WHITE), ring)
+            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRoundedRect(outline, radius + ring // 2, radius + ring // 2)
         painter.end()
 
 

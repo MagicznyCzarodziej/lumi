@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QWidget
 
 from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
 
 
-def _button_with_text(ribbon: InlineTagRibbon, text: str) -> QPushButton:
-    return next(button for button in ribbon.findChildren(QPushButton) if button.text() == text)
+def _tag_buttons(ribbon: InlineTagRibbon) -> list[QWidget]:
+    return [
+        widget
+        for widget in ribbon.findChildren(QWidget)
+        if widget.objectName() == "tagRibbonButton"
+    ]
+
+
+def _button_with_text(ribbon: InlineTagRibbon, text: str) -> QWidget:
+    return next(button for button in _tag_buttons(ribbon) if button.text() == text)
 
 
 def test_tag_selection_emits_filter_value_and_all_clears_it(qtbot) -> None:
@@ -33,7 +41,7 @@ def test_all_tag_is_the_leading_inline_filter(qtbot) -> None:
     qtbot.addWidget(ribbon)
     ribbon.set_tags(["action", "drama"])
 
-    labels = [button.text() for button in ribbon.findChildren(QPushButton)]
+    labels = [button.text() for button in _tag_buttons(ribbon)]
 
     assert labels == ["All tags", "Action", "Drama"]
 

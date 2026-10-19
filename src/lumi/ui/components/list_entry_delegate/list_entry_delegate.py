@@ -8,6 +8,7 @@ from PySide6.QtCore import QElapsedTimer, QPersistentModelIndex, QRect, Qt, QSiz
 from PySide6.QtGui import QBrush, QColor, QFont, QFontMetrics, QImage, QLinearGradient, QPainter
 from PySide6.QtWidgets import QAbstractItemView, QStyledItemDelegate, QStyle, QStyleOptionViewItem, QWidget
 
+from lumi.domain.library.models import Name
 from lumi.ui.components.list_entry import ListEntryTypeKind, ListEntryUiModel, NameDisplayStrategy
 from lumi.ui.icons.material_icons import IconKind, paint_icon
 from lumi.ui.theme.colors import (
@@ -41,6 +42,31 @@ _MARQUEE_START_DELAY_MS = 900
 _MARQUEE_END_DELAY_MS = 700
 _MARQUEE_SPEED_PX_PER_SECOND = s(40)
 _TEXT_FADE_WIDTH = s(14)
+
+
+def _library_primary_name(name: Name) -> str:
+    return name.sort_name or name.name
+
+
+def _library_secondary_name(name: Name) -> str | None:
+    if name.alternative_name:
+        return name.alternative_name
+    primary = _library_primary_name(name)
+    if name.name and name.name != primary:
+        return name.name
+    return None
+
+
+def _primary_name(model: ListEntryUiModel, strategy: NameDisplayStrategy) -> str:
+    if strategy is NameDisplayStrategy.LIBRARY:
+        return _library_primary_name(model.name)
+    return model.name.name
+
+
+def _secondary_name(model: ListEntryUiModel, strategy: NameDisplayStrategy) -> str | None:
+    if strategy is NameDisplayStrategy.LIBRARY:
+        return _library_secondary_name(model.name)
+    return model.name.alternative_name
 
 
 def _title_font() -> QFont:
@@ -269,11 +295,8 @@ class ListEntryDelegate(QStyledItemDelegate):
                 focus_pop_highlight_color(QColor(LIST_SELECTION_ACCENT), pop_progress),
             )
 
-        display_name = (
-            model.name.sort_name
-            if self._name_display_strategy is NameDisplayStrategy.LIBRARY
-            else model.name.name
-        )
+        display_name = _primary_name(model, self._name_display_strategy)
+        secondary_name = _secondary_name(model, self._name_display_strategy)
 
         title_font = _title_font()
         title_metrics = QFontMetrics(title_font)
@@ -285,9 +308,9 @@ class ListEntryDelegate(QStyledItemDelegate):
         text_width = max(0, text_right - inner.left())
 
         title_height = _single_line_height(display_name, title_font)
-        if model.name.alternative_name:
+        if secondary_name:
             alt_font = _alt_font()
-            alt_height = _single_line_height(model.name.alternative_name, alt_font)
+            alt_height = _single_line_height(secondary_name, alt_font)
             block_height = title_height + LIST_ROW_LINE_GAP + alt_height
             block_top = inner.top() + max(0, (inner.height() - block_height) // 2)
 
@@ -325,7 +348,7 @@ class ListEntryDelegate(QStyledItemDelegate):
             painter.setPen(QColor(TEXT_MUTED))
             _draw_elided_text(
                 painter,
-                text=model.name.alternative_name or "",
+                text=secondary_name or "",
                 font=alt_font,
                 rect=alt_rect,
             )
@@ -342,17 +365,11 @@ class ListEntryDelegate(QStyledItemDelegate):
         title_metrics = QFontMetrics(_title_font())
         height = top + bottom + title_metrics.height()
         if isinstance(model, ListEntryUiModel):
-            display_name = (
-                model.name.sort_name
-                if self._name_display_strategy is NameDisplayStrategy.LIBRARY
-                else model.name.name
-            )
+            display_name = _primary_name(model, self._name_display_strategy)
             height = top + bottom + _single_line_height(display_name, _title_font())
-            if model.name.alternative_name:
-                height += (
-                    LIST_ROW_LINE_GAP
-                    + _single_line_height(model.name.alternative_name, _alt_font())
-                )
+            secondary_name = _secondary_name(model, self._name_display_strategy)
+            if secondary_name:
+                height += LIST_ROW_LINE_GAP + _single_line_height(secondary_name, _alt_font())
             height += LIST_ROW_SPACING
         return QSize(width, height)
 

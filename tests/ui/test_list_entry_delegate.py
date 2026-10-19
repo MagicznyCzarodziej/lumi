@@ -7,7 +7,7 @@ from PySide6.QtGui import QColor, QFontMetrics, QImage, QPainter, QStandardItem,
 from PySide6.QtWidgets import QApplication, QStyle, QStyleOptionViewItem
 
 from lumi.domain.library.models import Name
-from lumi.ui.components.list_entry import ListEntryType, ListEntryUiModel
+from lumi.ui.components.list_entry import ListEntryType, ListEntryUiModel, NameDisplayStrategy
 from lumi.ui.components.list_entry_delegate.list_entry_delegate import (
     _MARQUEE_SPEED_PX_PER_SECOND,
     _MARQUEE_START_DELAY_MS,
@@ -172,3 +172,25 @@ def test_focus_pop_never_scales_beyond_row_bounds() -> None:
 def test_compact_focus_pop_uses_stronger_start_scale() -> None:
     assert focus_pop_scale_compact(0.0) == FOCUS_POP_START_SCALE_COMPACT
     assert focus_pop_scale_compact(0.0) < focus_pop_scale(0.0)
+
+
+def test_library_strategy_uses_name_as_secondary_when_sort_name_differs() -> None:
+    QApplication.instance() or QApplication([])
+    entry = ListEntryUiModel(
+        name=Name(name="Attack on Titan", sort_name="Shingeki no Kyojin"),
+        entry_type=ListEntryType.single(),
+    )
+    model = QStandardItemModel()
+    item = QStandardItem()
+    item.setData(entry, Qt.ItemDataRole.UserRole)
+    model.appendRow(item)
+
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 800, 120)
+    library_delegate = ListEntryDelegate(name_display_strategy=NameDisplayStrategy.LIBRARY)
+    regular_delegate = ListEntryDelegate(name_display_strategy=NameDisplayStrategy.REGULAR)
+
+    library_height = library_delegate.sizeHint(option, model.index(0, 0)).height()
+    regular_height = regular_delegate.sizeHint(option, model.index(0, 0)).height()
+
+    assert library_height > regular_height
