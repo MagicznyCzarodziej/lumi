@@ -3,20 +3,19 @@
 }
 
 #InlineTagRibbon QPushButton#tagRibbonButton {
-    background-color: transparent;
-    border: 1px solid @TOPBAR_DIVIDER@;
-    border-radius: @CORNER_RADIUS_SM@px;
+    background-color: @TOPBAR_SURFACE@;
+    border: none;
+    border-radius: @TAG_CHIP_RADIUS@px;
     color: @TEXT_MUTED@;
-    font-size: @FONT_SIZE_BASE@px;
+    font-size: @FONT_SIZE_TAG@px;
     padding: @TAG_CHIP_PADDING_V@px @TAG_CHIP_PADDING_H@px;
 }
 
 #InlineTagRibbon QPushButton#tagRibbonButton[selected="true"] {
     background-color: @TAG_ACCENT@;
-    border-color: @TAG_ACCENT@;
-    color: @WHITE@;
+    color: @TOPBAR_ACTIVE@;
 }
 
 #InlineTagRibbon QPushButton#tagRibbonButton:focus {
-    border-color: @WHITE@;
+    border: @ALPHABET_FOCUS_RING_WIDTH@px solid @WHITE@;
 }

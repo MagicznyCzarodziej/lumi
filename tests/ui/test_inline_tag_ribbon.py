@@ -28,6 +28,16 @@ def test_tag_selection_emits_filter_value_and_all_clears_it(qtbot) -> None:
     assert selected == ["action", None]
 
 
+def test_all_tag_is_the_leading_inline_filter(qtbot) -> None:
+    ribbon = InlineTagRibbon()
+    qtbot.addWidget(ribbon)
+    ribbon.set_tags(["action", "drama"])
+
+    labels = [button.text() for button in ribbon.findChildren(QPushButton)]
+
+    assert labels == ["All", "Action", "Drama"]
+
+
 def test_boundary_arrow_keys_emit_focus_intents(qtbot) -> None:
     ribbon = InlineTagRibbon()
     qtbot.addWidget(ribbon)

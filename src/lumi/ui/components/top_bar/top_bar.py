@@ -5,73 +5,82 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
-from PySide6.QtGui import QFont, QFontMetrics, QKeyEvent, QPainter, QColor
+from PySide6.QtGui import QColor, QKeyEvent, QPainter
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
 
 from lumi.ui.components.icon_label import IconLabel
 from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
 from lumi.ui.components.keyboard_helpers import is_escape_key
-from lumi.ui.icons.material_icons import IconKind
+from lumi.ui.icons.material_icons import IconKind, paint_icon
 from lumi.ui.screens.library.controller import EntriesFilter
-from lumi.ui.theme.colors import BLACK, TEXT_PRIMARY, TOPBAR_INACTIVE, WHITE
+from lumi.ui.theme.colors import (
+    TAG_ACCENT,
+    TOPBAR_ACTIVE,
+    TOPBAR_FOCUS_TINT,
+    TOPBAR_INACTIVE,
+    WHITE,
+)
 from lumi.ui.theme.spacing import (
-    CORNER_RADIUS_SM,
+    ALPHABET_FOCUS_RING_WIDTH,
+    ICON_SIZE,
     SPACE_SM,
+    TOPBAR_CHROME_GAP,
     TOPBAR_CONTENT_MARGINS,
-    TOPBAR_FILTER_PAD_H,
-    TOPBAR_FILTER_PAD_V,
+    TOPBAR_FILTER_GAP,
+    TOPBAR_HIT_TARGET,
+    TOPBAR_SEARCH_ICON_SIZE,
+    TOPBAR_SEARCH_PADDING_H,
+    TOPBAR_SEARCH_TEXT_GAP,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
-from lumi.ui.theme.typography import FONT_SIZE_TOPBAR
 
 
-class _FilterButton(QWidget):
-    """Filter pill — custom paint avoids native QPushButton focus chrome on macOS."""
+class _ChromeIconButton(QWidget):
+    """Prototype-style icon control with explicit keyboard focus rendering."""
 
     clicked = Signal()
 
-    _RADIUS = CORNER_RADIUS_SM
-    _PAD_V = TOPBAR_FILTER_PAD_V
-    _PAD_H = TOPBAR_FILTER_PAD_H
-
-    def __init__(self, label: str, parent: QWidget | None = None) -> None:
+    def __init__(self, icon: IconKind, label: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setObjectName("filterButton")
-        self._label = label
+        self.setObjectName("chromeIconButton")
+        self._icon = icon
+        self._selected = False
+        self.setToolTip(label)
+        self.setAccessibleName(label)
+        self.setFixedSize(TOPBAR_HIT_TARGET, TOPBAR_HIT_TARGET)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
 
-    def _font(self) -> QFont:
-        font = QFont()
-        font.setPixelSize(FONT_SIZE_TOPBAR)
-        return font
-
-    def sizeHint(self):
-        from PySide6.QtCore import QSize
-
-        metrics = QFontMetrics(self._font())
-        width = metrics.horizontalAdvance(self._label) + self._PAD_H * 2
-        height = metrics.height() + self._PAD_V * 2
-        return QSize(width, height)
+    def set_selected(self, selected: bool) -> None:
+        if selected == self._selected:
+            return
+        self._selected = selected
+        self.update()
 
     def paintEvent(self, event) -> None:
         del event
         rect = self.rect().adjusted(0, 0, -1, -1)
-        focused = self.hasFocus()
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        if focused:
+        if self._selected:
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(WHITE))
-            painter.drawRoundedRect(rect, self._RADIUS, self._RADIUS)
-            painter.setPen(QColor(BLACK))
+            painter.setBrush(QColor(TAG_ACCENT))
+            painter.drawRoundedRect(rect, TOPBAR_HIT_TARGET // 2, TOPBAR_HIT_TARGET // 2)
+            icon_color = TOPBAR_ACTIVE
+        elif self.hasFocus():
+            painter.setPen(QColor(WHITE))
+            painter.setBrush(QColor(TOPBAR_FOCUS_TINT))
+            painter.drawRoundedRect(rect, TOPBAR_HIT_TARGET // 2, TOPBAR_HIT_TARGET // 2)
+            icon_color = WHITE
         else:
-            painter.setPen(QColor(TEXT_PRIMARY))
-
-        painter.setFont(self._font())
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self._label)
+            icon_color = TOPBAR_INACTIVE
+        icon_rect = rect.adjusted(
+            (rect.width() - ICON_SIZE) // 2,
+            (rect.height() - ICON_SIZE) // 2,
+            -((rect.width() - ICON_SIZE + 1) // 2),
+            -((rect.height() - ICON_SIZE + 1) // 2),
+        )
+        paint_icon(painter, icon_rect, self._icon, QColor(icon_color))
         painter.end()
 
     def mousePressEvent(self, event) -> None:
@@ -95,30 +104,50 @@ class TopBar(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self._active_filter = EntriesFilter.ALL
-        self._buttons: dict[EntriesFilter, _FilterButton] = {}
-        self._button_order: list[_FilterButton] = []
+        self._buttons: dict[EntriesFilter, _ChromeIconButton] = {}
+        self._button_order: list[_ChromeIconButton] = []
 
-        self._recent_button = _FilterButton("Recent")
+        self._recent_button = _ChromeIconButton(IconKind.HISTORY, "Recently watched")
         self._recent_button.clicked.connect(self.recent_requested.emit)
         self._recent_button.installEventFilter(self)
 
-        search_icon = IconLabel(IconKind.SEARCH, color=TOPBAR_INACTIVE, parent=self)
+        self._search_pill = QWidget(self)
+        self._search_pill.setObjectName("searchPill")
+        self._search_pill.setFixedHeight(TOPBAR_HIT_TARGET)
+        search_layout = QHBoxLayout(self._search_pill)
+        search_layout.setContentsMargins(
+            TOPBAR_SEARCH_PADDING_H,
+            0,
+            TOPBAR_SEARCH_PADDING_H,
+            0,
+        )
+        search_layout.setSpacing(TOPBAR_SEARCH_TEXT_GAP)
+
+        search_icon = IconLabel(
+            IconKind.SEARCH,
+            color=TOPBAR_INACTIVE,
+            size=TOPBAR_SEARCH_ICON_SIZE,
+            parent=self._search_pill,
+        )
         search_icon.setObjectName("searchIcon")
 
-        self._search = QLineEdit()
+        self._search = QLineEdit(self._search_pill)
         self._search.setObjectName("searchField")
         self._search.setPlaceholderText("Search library...")
         self._search.textChanged.connect(self.search_changed.emit)
         self._search.installEventFilter(self)
+        search_layout.addWidget(search_icon)
+        search_layout.addWidget(self._search, stretch=1)
 
         button_row = QHBoxLayout()
-        button_row.setSpacing(0)
-        for label, filter_value in (
-            ("All", EntriesFilter.ALL),
-            ("Films", EntriesFilter.FILMS),
-            ("Series", EntriesFilter.SERIES),
+        button_row.setContentsMargins(0, 0, 0, 0)
+        button_row.setSpacing(TOPBAR_FILTER_GAP)
+        for icon, label, filter_value in (
+            (IconKind.GRID_VIEW, "All titles", EntriesFilter.ALL),
+            (IconKind.PLAY_CIRCLE, "Films", EntriesFilter.FILMS),
+            (IconKind.SERIES, "Series", EntriesFilter.SERIES),
         ):
-            button = _FilterButton(label)
+            button = _ChromeIconButton(icon, label)
             button.clicked.connect(lambda f=filter_value: self._select_filter(f))
             button.installEventFilter(self)
             self._buttons[filter_value] = button
@@ -129,7 +158,7 @@ class TopBar(QWidget):
         divider.setObjectName("topBarDivider")
         divider.setFrameShape(QFrame.Shape.VLine)
 
-        self._rebuild_button = _FilterButton("Rebuild")
+        self._rebuild_button = _ChromeIconButton(IconKind.REFRESH, "Rebuild library")
         self._rebuild_button.clicked.connect(self.rebuild_requested.emit)
         self._rebuild_button.installEventFilter(self)
         self._chrome_order: list[QWidget] = [
@@ -148,10 +177,13 @@ class TopBar(QWidget):
         controls.setContentsMargins(0, 0, 0, 0)
         controls.setSpacing(0)
         controls.addWidget(self._recent_button)
-        controls.addWidget(search_icon)
-        controls.addWidget(self._search, stretch=1)
+        controls.addSpacing(TOPBAR_CHROME_GAP)
+        controls.addWidget(self._search_pill, stretch=1)
+        controls.addSpacing(TOPBAR_CHROME_GAP)
         controls.addLayout(button_row)
+        controls.addSpacing(TOPBAR_CHROME_GAP)
         controls.addWidget(divider)
+        controls.addSpacing(TOPBAR_CHROME_GAP)
         controls.addWidget(self._rebuild_button)
 
         layout = QVBoxLayout(self)
@@ -184,6 +216,8 @@ class TopBar(QWidget):
 
     def set_active_filter(self, filter_value: EntriesFilter) -> None:
         self._active_filter = filter_value
+        for value, button in self._buttons.items():
+            button.set_selected(value is filter_value)
 
     def set_tags(self, tags: list[str]) -> None:
         self._tag_ribbon.set_tags(tags)
@@ -237,7 +271,7 @@ class TopBar(QWidget):
                 return True
             return super().eventFilter(watched, event)
 
-        if not isinstance(watched, _FilterButton) or watched not in self._chrome_order:
+        if not isinstance(watched, _ChromeIconButton) or watched not in self._chrome_order:
             return super().eventFilter(watched, event)
 
         if event.type() == QEvent.Type.FocusIn:

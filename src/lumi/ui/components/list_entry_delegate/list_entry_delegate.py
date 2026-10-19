@@ -46,6 +46,7 @@ _TEXT_FADE_WIDTH = s(14)
 def _title_font() -> QFont:
     font = QFont()
     font.setPixelSize(FONT_SIZE_LIST)
+    font.setWeight(QFont.Weight.Medium)
     return font
 
 

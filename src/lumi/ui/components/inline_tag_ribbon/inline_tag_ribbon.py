@@ -33,7 +33,6 @@ class InlineTagRibbon(QWidget):
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(TAG_CHIP_GAP)
-        self._layout.addStretch(1)
         self.hide()
 
     def set_tags(self, tags: list[str]) -> None:
@@ -118,7 +117,7 @@ class InlineTagRibbon(QWidget):
         button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         button.clicked.connect(lambda checked=False, value=tag: self._select_tag(value))
         button.installEventFilter(self)
-        self._layout.insertWidget(self._layout.count() - 1, button)
+        self._layout.addWidget(button)
         self._buttons.append(button)
         self._button_tags[button] = tag
 

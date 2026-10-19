@@ -48,6 +48,11 @@ _ADD = "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"
 _REMOVE = "M19 13H5v-2h14v2z"
 _CHEVRON_LEFT = "M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"
 _CHEVRON_RIGHT = "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+_GRID_VIEW = "M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z"
+_HISTORY = (
+    "M13 3a9 9 0 0 0-8.95 8H1l4 4 4-4H6.05A7 7 0 1 1 13 20a7 7 0 0 1-5.5-2.67"
+    "l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.25 2.52.75-1.23-3.5-2.04V8h-1.5z"
+)
 _ANIMATION_PLAY = (
     "M4,2a2,2 0,0 0,-2 2v10h2L4,4h10L14,2zM8,6a2,2 0,0 0,-2 2v10h2L8,8h10L18,6z"
     "M20,12v8h-8v-8zM20,10h-8a2,2 0,0 0,-2 2v8a2,2 0,0 0,2 2h8a2,2 0,0 0,2 -2v-8a2,2 0,0 0,-2 -2m-6,3v6l4,-3z"
@@ -69,6 +74,8 @@ class IconKind(Enum):
     REMOVE = auto()
     CHEVRON_LEFT = auto()
     CHEVRON_RIGHT = auto()
+    GRID_VIEW = auto()
+    HISTORY = auto()
     EPISODE_NEXT = auto()
     EPISODE_PREVIOUS = auto()
 
@@ -88,6 +95,8 @@ _SVG_PATHS: dict[IconKind, str] = {
     IconKind.REMOVE: _REMOVE,
     IconKind.CHEVRON_LEFT: _CHEVRON_LEFT,
     IconKind.CHEVRON_RIGHT: _CHEVRON_RIGHT,
+    IconKind.GRID_VIEW: _GRID_VIEW,
+    IconKind.HISTORY: _HISTORY,
 }
 
 
