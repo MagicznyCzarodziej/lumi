@@ -6,14 +6,16 @@ from tests.constants import MOCK_LIBRARY_ROOT
 from pathlib import PurePosixPath
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QStackedWidget
+from PySide6.QtWidgets import QApplication, QLineEdit, QPushButton, QStackedWidget
 
 from lumi.config.settings import Settings
 from lumi.container import build_container
+from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
 from lumi.infrastructure.mock.mock_video_player import MockVideoPlayer
 from lumi.ui.components.list_entry_delegate import ListEntryDelegate
 from lumi.ui.context import ScreenContext
 from lumi.ui.navigation.router import Router
+from lumi.ui.screens.library.controller import EntriesFilter
 from lumi.ui.screens.library.screen import LibraryScreen
 
 
@@ -89,6 +91,34 @@ def test_filters_down_moves_focus_to_entries(qtbot) -> None:
     qtbot.keyClick(focus, Qt.Key.Key_Down)
 
     assert screen._entries_has_focus()
+
+
+def test_inline_tag_ribbon_composes_with_search_and_type_filters(qtbot) -> None:
+    screen = _library_screen(qtbot)
+    layout = screen._layout
+    ribbon = layout.top_bar.findChild(InlineTagRibbon)
+    assert ribbon is not None
+
+    qtbot.mouseClick(layout.top_bar._buttons[EntriesFilter.FILMS], Qt.MouseButton.LeftButton)
+    search = layout.top_bar.findChild(QLineEdit, "searchField")
+    assert search is not None
+    search.setText("alien")
+
+    sci_fi = next(
+        button
+        for button in ribbon.findChildren(QPushButton)
+        if button.text() == "Sci-fi"
+    )
+    qtbot.mouseClick(sci_fi, Qt.MouseButton.LeftButton)
+
+    titles = [
+        layout.entries.item(index).data(Qt.ItemDataRole.UserRole).name.name
+        for index in range(layout.entries.count())
+    ]
+    assert screen._entries_filter is EntriesFilter.FILMS
+    assert screen._search_query == "alien"
+    assert screen._tag_filter == "sci-fi"
+    assert titles == ["Alien"]
 
 
 def test_sidebar_left_and_right_return_to_entries(qtbot) -> None:

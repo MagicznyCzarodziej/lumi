@@ -53,6 +53,8 @@ class LibraryScreen(NavigableScreen):
 
         self._layout.top_bar.filter_changed.connect(self._on_filter_changed)
         self._layout.top_bar.search_changed.connect(self._on_search_changed)
+        self._layout.top_bar.tag_filter_changed.connect(self._on_tag_filter_changed)
+        self._layout.top_bar.rebuild_requested.connect(self._request_rebuild)
         self._layout.top_bar.navigate_down.connect(self._focus_current_entry)
         self._layout.sidebar.tag_filter_changed.connect(self._on_tag_filter_changed)
         self._layout.sidebar.rebuild_requested.connect(self._request_rebuild)
@@ -178,6 +180,8 @@ class LibraryScreen(NavigableScreen):
         self._layout.sidebar.set_active_tag(self._tag_filter)
         self._layout.sidebar.set_tags(self._ui_state.tags)
         self._layout.top_bar.set_active_filter(self._entries_filter)
+        self._layout.top_bar.set_active_tag(self._tag_filter)
+        self._layout.top_bar.set_tags(self._ui_state.tags)
 
         symbols = build_alphabet_symbols(self._ui_state.entries)
         self._layout.alphabet.set_symbols(symbols)

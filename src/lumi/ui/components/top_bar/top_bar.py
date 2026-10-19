@@ -6,15 +6,17 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QFont, QFontMetrics, QKeyEvent, QPainter, QColor
-from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLineEdit, QWidget
+from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
 
 from lumi.ui.components.icon_label import IconLabel
+from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
 from lumi.ui.components.keyboard_helpers import is_escape_key
 from lumi.ui.icons.material_icons import IconKind
 from lumi.ui.screens.library.controller import EntriesFilter
-from lumi.ui.theme.colors import BLACK, STAR_INACTIVE, TEXT_PRIMARY, TOPBAR_INACTIVE, WHITE
+from lumi.ui.theme.colors import BLACK, TEXT_PRIMARY, TOPBAR_INACTIVE, WHITE
 from lumi.ui.theme.spacing import (
     CORNER_RADIUS_SM,
+    SPACE_SM,
     TOPBAR_CONTENT_INSET,
     TOPBAR_FILTER_PAD_H,
     TOPBAR_FILTER_PAD_V,
@@ -81,6 +83,9 @@ class _FilterButton(QWidget):
 class TopBar(QWidget):
     filter_changed = Signal(object)
     search_changed = Signal(str)
+    tag_filter_changed = Signal(object)
+    recent_requested = Signal()
+    rebuild_requested = Signal()
     navigate_down = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -92,6 +97,9 @@ class TopBar(QWidget):
         self._active_filter = EntriesFilter.ALL
         self._buttons: dict[EntriesFilter, _FilterButton] = {}
         self._button_order: list[_FilterButton] = []
+
+        self._recent_button = _FilterButton("Recent")
+        self._recent_button.clicked.connect(self.recent_requested.emit)
 
         search_icon = IconLabel(IconKind.SEARCH, color=TOPBAR_INACTIVE, parent=self)
         search_icon.setObjectName("searchIcon")
@@ -120,21 +128,32 @@ class TopBar(QWidget):
         divider.setObjectName("topBarDivider")
         divider.setFrameShape(QFrame.Shape.VLine)
 
-        star_icon = IconLabel(IconKind.STAR, color=STAR_INACTIVE, parent=self)
-        star_icon.setObjectName("starIcon")
+        self._rebuild_button = _FilterButton("Rebuild")
+        self._rebuild_button.clicked.connect(self.rebuild_requested.emit)
 
-        layout = QHBoxLayout(self)
+        self._tag_ribbon = InlineTagRibbon(self)
+        self._tag_ribbon.tag_selected.connect(self.tag_filter_changed.emit)
+
+        controls = QHBoxLayout()
+        controls.setContentsMargins(0, 0, 0, 0)
+        controls.setSpacing(0)
+        controls.addWidget(self._recent_button)
+        controls.addWidget(search_icon)
+        controls.addWidget(self._search, stretch=1)
+        controls.addLayout(button_row)
+        controls.addWidget(divider)
+        controls.addWidget(self._rebuild_button)
+
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(
             TOPBAR_CONTENT_INSET,
             TOPBAR_CONTENT_INSET,
             TOPBAR_CONTENT_INSET,
-            0,
+            TOPBAR_CONTENT_INSET,
         )
-        layout.addWidget(search_icon)
-        layout.addWidget(self._search, stretch=1)
-        layout.addLayout(button_row)
-        layout.addWidget(divider)
-        layout.addWidget(star_icon)
+        layout.setSpacing(SPACE_SM)
+        layout.addLayout(controls)
+        layout.addWidget(self._tag_ribbon)
 
     def clear_search(self) -> None:
         self._search.blockSignals(True)
@@ -160,6 +179,12 @@ class TopBar(QWidget):
 
     def set_active_filter(self, filter_value: EntriesFilter) -> None:
         self._active_filter = filter_value
+
+    def set_tags(self, tags: list[str]) -> None:
+        self._tag_ribbon.set_tags(tags)
+
+    def set_active_tag(self, tag: str | None) -> None:
+        self._tag_ribbon.set_active_tag(tag)
 
     def focus_first_filter(self) -> None:
         if self._button_order:
