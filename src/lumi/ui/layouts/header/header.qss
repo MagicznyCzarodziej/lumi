@@ -22,4 +22,5 @@
 #Header QLabel#subtitle {
     color: @TEXT_PRIMARY@;
     font-size: @FONT_SIZE_HEADER_SUBTITLE@px;
+    font-style: normal;
 }

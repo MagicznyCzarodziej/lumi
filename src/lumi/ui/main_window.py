@@ -12,6 +12,7 @@ from lumi.ui.components.keyboard_helpers import is_back_key
 from lumi.config.settings import Settings
 from lumi.container import Container
 from lumi.domain.video_player import VideoPlayer
+from lumi.infrastructure.watch_progress import load_recent_watch_records
 from lumi.infrastructure.mock.mock_video_player import MockVideoPlayer
 from lumi.ui.context import ScreenContext
 from lumi.ui.navigation.destinations import (
@@ -21,6 +22,7 @@ from lumi.ui.navigation.destinations import (
     LibraryDestination,
     MediaGroupingDestination,
     MediaGroupingEpisodesGroupDestination,
+    RecentlyWatchedDestination,
     SeriesDestination,
 )
 from lumi.ui.navigation.navigable_screen import NavigableScreen
@@ -33,6 +35,7 @@ from lumi.ui.screens.film_series.screen import FilmSeriesScreen
 from lumi.ui.screens.library.screen import LibraryScreen
 from lumi.ui.screens.media_grouping.screen import MediaGroupingScreen
 from lumi.ui.screens.media_grouping_episodes.screen import MediaGroupingEpisodesGroupScreen
+from lumi.ui.screens.recently_watched.screen import RecentlyWatchedScreen
 from lumi.ui.screens.series.screen import SeriesScreen
 from lumi.ui.workers.library_init_worker import LibraryInitWorker
 from lumi.ui.theme.scale import scaled
@@ -117,6 +120,13 @@ class MainWindow(QMainWindow):
     def _register_screens(self) -> None:
         loader = self._poster_loader
         self._router.register(LibraryDestination, lambda: self._library_screen)
+        self._router.register(
+            RecentlyWatchedDestination,
+            lambda: RecentlyWatchedScreen(
+                self._router,
+                records_loader=load_recent_watch_records,
+            ),
+        )
         self._router.register(SeriesDestination, lambda: SeriesScreen(self._router, poster_loader=loader))
         self._router.register(EpisodesGroupDestination, lambda: EpisodesScreen(poster_loader=loader))
         self._router.register(FilmSeriesDestination, lambda: FilmSeriesScreen(poster_loader=loader))
@@ -202,7 +212,7 @@ class MainWindow(QMainWindow):
 
     def focus_playback_path(self, path: PurePosixPath) -> bool:
         screen = self._stack.currentWidget()
-        if isinstance(screen, ListWithPosterScreen):
+        if isinstance(screen, (ListWithPosterScreen, RecentlyWatchedScreen)):
             return screen.focus_playback_path(path)
         return False
 
