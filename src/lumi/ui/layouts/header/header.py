@@ -4,21 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QRect, QRectF, QSize
+from PySide6.QtCore import Qt, QRectF, QSize
 from PySide6.QtGui import QFont, QFontMetrics, QPainter, QColor
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
-from lumi.ui.icons.material_icons import IconKind, paint_icon
-from lumi.ui.theme.colors import TAG_ACCENT, WHITE
+from lumi.ui.theme.colors import ALPHABET_ACTIVE_TINT, TOPBAR_ACTIVE
 from lumi.ui.theme.spacing import (
     HEADER_TAG_GAP,
-    HEADER_TAG_ICON_SIZE,
     HEADER_TAG_PAD_H,
     HEADER_TAG_PAD_V,
     HEADER_TAG_ROW_MARGIN_V,
     LIST_ROW_LEFT_INSET,
     SPACE_SM,
-    TAG_CHIP_ICON_GAP,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
 from lumi.ui.theme.text_metrics import ink_single_line_height, ink_text_width
@@ -26,13 +23,10 @@ from lumi.ui.theme.typography import FONT_SIZE_XS
 
 
 class _TagChip(QWidget):
-    """Purple pill tag painted in one pass."""
+    """Compact accent-dim tag pill (series header, matches prototype)."""
 
-    _ICON_SIZE = HEADER_TAG_ICON_SIZE
-    _PAD_LEFT = HEADER_TAG_PAD_H
-    _PAD_RIGHT = HEADER_TAG_PAD_H
-    _TEXT_PAD_LEFT = TAG_CHIP_ICON_GAP
-    _TEXT_PAD_V = HEADER_TAG_PAD_V
+    _PAD_H = HEADER_TAG_PAD_H
+    _PAD_V = HEADER_TAG_PAD_V
     _ROW_MARGIN_V = HEADER_TAG_ROW_MARGIN_V
 
     def __init__(self, tag: str, parent: QWidget | None = None) -> None:
@@ -48,10 +42,8 @@ class _TagChip(QWidget):
     def sizeHint(self) -> QSize:
         metrics = QFontMetrics(self._font())
         text_width = ink_text_width(metrics, self._tag)
-        width = self._PAD_LEFT + self._ICON_SIZE + self._TEXT_PAD_LEFT + text_width + self._PAD_RIGHT
-        text_block = ink_single_line_height(metrics, self._tag) + self._TEXT_PAD_V * 2
-        inner_height = max(self._ICON_SIZE, text_block)
-        height = inner_height + self._ROW_MARGIN_V * 2
+        width = self._PAD_H * 2 + text_width
+        height = ink_single_line_height(metrics, self._tag) + self._PAD_V * 2 + self._ROW_MARGIN_V * 2
         return QSize(width, height)
 
     def minimumSizeHint(self) -> QSize:
@@ -60,8 +52,7 @@ class _TagChip(QWidget):
     def paintEvent(self, event) -> None:
         del event
         metrics = QFontMetrics(self._font())
-        text_block = ink_single_line_height(metrics, self._tag) + self._TEXT_PAD_V * 2
-        inner_height = max(self._ICON_SIZE, text_block)
+        inner_height = ink_single_line_height(metrics, self._tag) + self._PAD_V * 2
         pill_y = self._ROW_MARGIN_V
         pill_rect = QRectF(0, pill_y, self.width(), inner_height)
         radius = inner_height / 2
@@ -69,23 +60,13 @@ class _TagChip(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor(TAG_ACCENT))
+        painter.setBrush(QColor(ALPHABET_ACTIVE_TINT))
         painter.drawRoundedRect(pill_rect, radius, radius)
-
-        icon_x = self._PAD_LEFT
-        icon_y = pill_y + (inner_height - self._ICON_SIZE) // 2
-        icon_rect = QRect(icon_x, icon_y, self._ICON_SIZE, self._ICON_SIZE)
-        paint_icon(painter, icon_rect, IconKind.SELL, QColor(WHITE))
-
-        text_x = icon_x + self._ICON_SIZE + self._TEXT_PAD_LEFT
-        text_rect = QRect(text_x, pill_y, self.width() - text_x - self._PAD_RIGHT, inner_height)
         painter.setFont(self._font())
-        painter.setPen(QColor(WHITE))
+        painter.setPen(QColor(TOPBAR_ACTIVE))
         painter.drawText(
-            text_rect,
-            Qt.AlignmentFlag.AlignLeft
-            | Qt.AlignmentFlag.AlignVCenter
-            | Qt.TextFlag.TextDontClip,
+            pill_rect,
+            Qt.AlignmentFlag.AlignCenter,
             self._tag,
         )
         painter.end()
