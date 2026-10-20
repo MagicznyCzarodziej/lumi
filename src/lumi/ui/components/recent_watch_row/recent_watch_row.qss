@@ -2,39 +2,64 @@
     background: transparent;
 }
 
+#RecentWatchRow #body,
+#RecentWatchRow #top,
+#RecentWatchRow #bottom,
+#RecentWatchRow #actionBand,
+#RecentWatchRow #showMeta,
+#RecentWatchRow #playableName,
+#RecentWatchRow #showName,
+#RecentWatchRow #alternativeName,
+#RecentWatchRow #when,
+#RecentWatchRow #actionLabel,
+#RecentWatchRow #actionRemove {
+    background: transparent;
+}
+
 #RecentWatchRow #thumbnail {
-    background-color: @SIDEBAR_BG@;
+    background-color: @POSTER_BED@;
     border-radius: @CORNER_RADIUS_SM@px;
 }
 
 #RecentWatchRow #playableName {
     color: @TEXT_PRIMARY@;
     font-size: @FONT_SIZE_LIST@px;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 #RecentWatchRow #showName,
-#RecentWatchRow #alternativeName,
-#RecentWatchRow #time {
-    color: @ALPHABET_INACTIVE_TEXT@;
+#RecentWatchRow #alternativeName {
+    color: @TEXT_MUTED@;
     font-size: @FONT_SIZE_LIST_ALT@px;
+    font-weight: 400;
+}
+
+#RecentWatchRow #when {
+    color: @TEXT_MUTED@;
+    font-size: @FONT_SIZE_XS@px;
 }
 
 #RecentWatchRow #progress {
     border: none;
-    background-color: @SIDEBAR_DIVIDER@;
+    border-radius: @RECENT_WATCH_PROGRESS_RADIUS@px;
+    background-color: @RECENT_WATCH_PROGRESS_TRACK@;
 }
 
 #RecentWatchRow #progress::chunk {
+    border-radius: @RECENT_WATCH_PROGRESS_RADIUS@px;
     background-color: @LIST_SELECTION_ACCENT@;
 }
 
-#RecentWatchRow #actionLabel {
-    color: @ALPHABET_INACTIVE_TEXT@;
-    font-size: @FONT_SIZE_LIST_ALT@px;
+#RecentWatchRow #actionLabel,
+#RecentWatchRow #actionRemove {
+    color: @TEXT_MUTED@;
+    font-size: @FONT_SIZE_TAG@px;
+    font-weight: 600;
     padding: 0;
 }
 
-#RecentWatchRow #actionLabel[actionSelected="true"] {
+#RecentWatchRow #actionLabel[actionSelected="true"],
+#RecentWatchRow #actionRemove[actionSelected="true"] {
     color: @TEXT_PRIMARY@;
+    background: transparent;
 }

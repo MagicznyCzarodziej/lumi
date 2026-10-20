@@ -20,7 +20,7 @@ from lumi.ui.theme.spacing import (
     LIST_LAYOUT_STRETCH,
     LIST_OUTER_MARGINS,
     LIST_VIEWPORT_MARGINS,
-    POSTER_LAYOUT_STRETCH,
+    POSTER_COLUMN_WIDTH,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
 
@@ -32,6 +32,7 @@ class LibraryLayout(QWidget):
         apply_widget_stylesheet(self, Path(__file__).with_name("screen.qss"))
 
         self.poster = PosterWidget()
+        self.poster.setFixedWidth(POSTER_COLUMN_WIDTH)
         self.poster_skeleton = SkeletonOverlay(parent=self.poster)
         self.alphabet = AlphabetColumn()
         self.top_bar = TopBar()
@@ -52,7 +53,7 @@ class LibraryLayout(QWidget):
         content_layout = QHBoxLayout(content)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
-        content_layout.addWidget(self.poster, stretch=POSTER_LAYOUT_STRETCH)
+        content_layout.addWidget(self.poster)
 
         self.alphabet_rail = QWidget()
         self.alphabet_rail.setObjectName("alphabetRail")
@@ -60,11 +61,12 @@ class LibraryLayout(QWidget):
         alphabet_layout = QVBoxLayout(self.alphabet_rail)
         alphabet_layout.setContentsMargins(ALPHABET_WRAPPER_LEFT_MARGIN, 0, 0, 0)
         alphabet_layout.setSpacing(0)
+        alphabet_layout.addStretch(1)
         alphabet_layout.addWidget(
             self.alphabet,
-            stretch=1,
-            alignment=Qt.AlignmentFlag.AlignHCenter,
+            alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
         )
+        alphabet_layout.addStretch(1)
         content_layout.addWidget(self.alphabet_rail)
 
         self.main_content = QWidget()

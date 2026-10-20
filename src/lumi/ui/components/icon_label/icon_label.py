@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QRect
+from PySide6.QtCore import Qt, QRect
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QLabel, QSizePolicy, QWidget
 
@@ -18,6 +18,8 @@ class IconLabel(QLabel):
         self._icon_size = size
         self.setFixedSize(size, size)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.setAutoFillBackground(False)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
 
     def paintEvent(self, event) -> None:
         del event

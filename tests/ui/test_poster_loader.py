@@ -50,6 +50,32 @@ def test_poster_loader_disk_cache_loads_asynchronously(tmp_path) -> None:
     assert received == [poster_path]
 
 
+def test_poster_loader_loads_multiple_paths_without_cancelling(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    first_path = PurePosixPath("Alien")
+    second_path = PurePosixPath("Blade Runner")
+    disk_cache = DiskPosterCache(tmp_path)
+    disk_cache.write(first_path, TINY_PNG)
+    disk_cache.write(second_path, TINY_PNG)
+
+    loader = PosterLoader(_UnusedPosterProvider(), disk_cache)
+    received: list[PurePosixPath] = []
+    loader.loaded.connect(lambda path, _pixmap: received.append(path))
+
+    assert loader.load(first_path, immediate=True) is False
+    assert loader.load(second_path, immediate=True) is False
+
+    loop = QEventLoop()
+    QTimer.singleShot(2000, loop.quit)
+    loader.loaded.connect(
+        lambda *_args: loop.quit() if len({*received}) >= 2 else None,
+    )
+    loop.exec()
+
+    assert first_path in received
+    assert second_path in received
+
+
 def test_poster_loader_memory_cache_is_synchronous(tmp_path) -> None:
     QApplication.instance() or QApplication([])
     poster_path = PurePosixPath("Alien")

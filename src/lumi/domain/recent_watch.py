@@ -30,7 +30,7 @@ MIN_SAVE_POSITION_SECONDS = 3.0
 
 @dataclass(frozen=True)
 class RecentWatchRecord:
-    """A resumable playback record, keyed by its library path."""
+    """A playback record for Recently watched, keyed by its library path."""
 
     library_path: PurePosixPath
     position: float
@@ -63,6 +63,55 @@ class ResolvedRecentWatch:
     episodes_group: EpisodesGroup | None = None
 
 
+def coerce_saved_playback_position(
+    position: float,
+    alternate_position: float,
+    duration: float | None,
+) -> float:
+    """Pick a timeline bookmark to persist, including near-end and completed sessions."""
+    best = max(position, alternate_position)
+    if duration is not None and math.isfinite(duration) and duration > 0:
+        if is_playback_complete(best, duration):
+            return min(
+                duration,
+                max(best, duration * RESUME_END_THRESHOLD_FRACTION),
+            )
+    if best >= MIN_SAVE_POSITION_SECONDS:
+        return best
+    return position
+
+
+def resume_timeline_fraction(position: float, duration: float | None) -> float | None:
+    """Return how far into the media timeline playback stopped (0–1), not watch-time."""
+    if duration is None or not math.isfinite(duration) or duration <= 0:
+        return None
+    if not math.isfinite(position):
+        return None
+    return min(1.0, max(0.0, position / duration))
+
+
+def resume_timeline_percent(position: float, duration: float | None) -> int | None:
+    """Integer percent for UI labels derived from ``resume_timeline_fraction``."""
+    if is_playback_complete(position, duration):
+        return 100
+    fraction = resume_timeline_fraction(position, duration)
+    if fraction is None:
+        return None
+    return int(fraction * 100)
+
+
+def is_playback_complete(position: float, duration: float | None) -> bool:
+    """Return whether playback reached the end (for Watch again, not resume)."""
+    if duration is None or not math.isfinite(duration) or duration <= 0:
+        return False
+    if not math.isfinite(position):
+        return False
+    return (
+        position >= duration - RESUME_END_THRESHOLD_SECONDS
+        or position >= duration * RESUME_END_THRESHOLD_FRACTION
+    )
+
+
 def is_resumable_position(position: float, duration: float | None) -> bool:
     """Return whether playback is far enough from both ends to resume."""
     if not math.isfinite(position) or position < MIN_SAVE_POSITION_SECONDS:
@@ -77,6 +126,15 @@ def is_resumable_position(position: float, duration: float | None) -> bool:
     )
 
 
+def is_recent_watch_record(position: float, duration: float | None) -> bool:
+    """Return whether a playback session belongs on Recently watched."""
+    if not math.isfinite(position) or position < MIN_SAVE_POSITION_SECONDS:
+        return False
+    if is_playback_complete(position, duration):
+        return True
+    return is_resumable_position(position, duration)
+
+
 def resolve_recent_watch_records(
     records: Iterable[RecentWatchRecord],
     library: Library,
@@ -84,7 +142,7 @@ def resolve_recent_watch_records(
     """Resolve valid persisted records against media still in the library."""
     resolved: list[ResolvedRecentWatch] = []
     for record in records:
-        if not is_resumable_position(record.position, record.duration):
+        if not is_recent_watch_record(record.position, record.duration):
             continue
         match = _resolve_record(record, library.entries)
         if match is not None:

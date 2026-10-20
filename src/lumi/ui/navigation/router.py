@@ -63,8 +63,8 @@ class Router(QObject):
 
     def _show(self, destination: Destination) -> None:
         screen = self._screen_for(destination)
-        screen.bind(destination, self._context)
         self._stack.setCurrentWidget(screen)
+        screen.bind(destination, self._context)
         screen.focus_default()
         self.destination_changed.emit(destination)
 

@@ -18,6 +18,7 @@ from lumi.domain.playback import PlaybackUriResolver
 from lumi.domain.subtitles.cache import SubtitleCache
 from lumi.domain.subtitles.provider import SubtitleDownloadProvider
 from lumi.domain.subtitles.saved_state import NapiSavedStateStore
+from lumi.domain.recent_watch import coerce_saved_playback_position
 from lumi.domain.watch_history import WatchHistory
 from lumi.ui.player.controller.controller import MpvController
 from lumi.ui.player.overlay.deps import OverlayDeps
@@ -155,7 +156,13 @@ class VideoArea(QWidget):
         if library_path is None:
             return
         duration = self.controller.duration()
-        position = self.controller.time_pos()
+        if duration <= 0 and self.controller.state.duration > 0:
+            duration = self.controller.state.duration
+        position = coerce_saved_playback_position(
+            self.controller.time_pos(),
+            self.controller.state.time_pos,
+            duration if duration > 0 else None,
+        )
         history = self._watch_history
         if history is None:
             return

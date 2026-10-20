@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QImage, QPainter
 from lumi.ui.components.alphabet_column import AlphabetColumn
 from lumi.ui.theme.colors import ALPHABET_ACTIVE_TINT, BACKGROUND, WHITE
 from lumi.ui.theme.spacing import (
+    ALPHABET_COLUMN_HEIGHT,
     ALPHABET_COLUMN_WIDTH,
     ALPHABET_FOCUS_RING_WIDTH,
     ALPHABET_LETTER_GAP,
@@ -68,6 +69,7 @@ def test_alphabet_uses_compact_a_to_z_rail_metrics() -> None:
     )
     assert ALPHABET_LETTER_GAP == 4
     assert column.width() == ALPHABET_COLUMN_WIDTH
+    assert column.height() == ALPHABET_COLUMN_HEIGHT
     assert column.scroll_offset_for_index(column.count() - 1) == (
         column.count() * (ALPHABET_LETTER_HEIGHT + ALPHABET_LETTER_GAP)
         - column.height()

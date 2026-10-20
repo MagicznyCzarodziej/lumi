@@ -8,6 +8,7 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication, QWidget
 
 from lumi.ui.theme import colors, spacing, typography
+from lumi.ui.theme.fonts import apply_app_fonts
 
 _THEME_DIR = Path(__file__).parent
 _TOKEN_PATTERN = re.compile(r"@([A-Z][A-Z0-9_]*)@")
@@ -33,6 +34,7 @@ def render_qss(path: Path) -> str:
 
 
 def apply_global_theme(app: QApplication) -> None:
+    apply_app_fonts(app)
     app.setStyle("Fusion")
     app.setStyleSheet(render_qss(_THEME_DIR / "qss" / "global.qss"))
 

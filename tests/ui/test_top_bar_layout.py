@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QFrame, QLineEdit, QWidget
 
+from lumi.ui.components.inline_tag_ribbon.inline_tag_ribbon import _TagRibbonButton
 from lumi.ui.components.top_bar import TopBar
 from lumi.ui.theme.spacing import (
     DIVIDER_HEIGHT,
@@ -64,3 +65,16 @@ def test_top_bar_chrome_matches_prototype_metrics(qtbot) -> None:
     controls = top_bar.layout().itemAt(0).layout()
     assert controls is not None
     assert controls.spacing() == TOPBAR_CHROME_GAP
+
+
+def test_tag_chips_match_chrome_hit_target_height(qtbot) -> None:
+    top_bar = TopBar()
+    qtbot.addWidget(top_bar)
+    top_bar.set_tags(["action"])
+    top_bar.show()
+    qtbot.waitExposed(top_bar)
+
+    chips = top_bar.findChildren(_TagRibbonButton)
+    assert chips
+    for chip in chips:
+        assert chip.height() == TOPBAR_HIT_TARGET

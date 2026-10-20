@@ -174,7 +174,7 @@ def test_compact_focus_pop_uses_stronger_start_scale() -> None:
     assert focus_pop_scale_compact(0.0) < focus_pop_scale(0.0)
 
 
-def test_library_strategy_uses_name_as_secondary_when_sort_name_differs() -> None:
+def test_library_strategy_secondary_line_only_for_alternative_name() -> None:
     QApplication.instance() or QApplication([])
     entry = ListEntryUiModel(
         name=Name(name="Attack on Titan", sort_name="Shingeki no Kyojin"),
@@ -193,4 +193,4 @@ def test_library_strategy_uses_name_as_secondary_when_sort_name_differs() -> Non
     library_height = library_delegate.sizeHint(option, model.index(0, 0)).height()
     regular_height = regular_delegate.sizeHint(option, model.index(0, 0)).height()
 
-    assert library_height > regular_height
+    assert library_height == regular_height

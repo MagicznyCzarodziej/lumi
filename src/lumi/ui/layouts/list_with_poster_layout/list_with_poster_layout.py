@@ -14,7 +14,13 @@ from lumi.ui.components.poster_widget import PosterWidget
 from lumi.ui.components.skeleton_overlay import SkeletonOverlay
 from lumi.ui.layouts.header import Header
 from lumi.ui.poster_loader import PosterLoader
-from lumi.ui.theme.spacing import LIST_CONTENT_MARGINS, LIST_LAYOUT_STRETCH, POSTER_LAYOUT_STRETCH
+from lumi.ui.theme.spacing import (
+    LIST_CONTENT_MARGINS,
+    LIST_HEADER_SECTION_GAP,
+    LIST_LAYOUT_STRETCH,
+    POSTER_COLUMN_WIDTH,
+    POSTER_CONTENT_GAP,
+)
 from lumi.ui.theme.styles import apply_widget_stylesheet
 
 
@@ -41,6 +47,7 @@ class ListWithPosterLayout(QWidget):
         apply_widget_stylesheet(self, Path(__file__).with_suffix(".qss"))
 
         self._poster = PosterWidget()
+        self._poster.setFixedWidth(POSTER_COLUMN_WIDTH)
         self._poster_skeleton = SkeletonOverlay(parent=self._poster)
         self._header = Header()
         self._entries = EntriesList(name_display_strategy=name_display_strategy)
@@ -49,7 +56,7 @@ class ListWithPosterLayout(QWidget):
         content = QWidget()
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(*LIST_CONTENT_MARGINS)
-        content_layout.setSpacing(0)
+        content_layout.setSpacing(LIST_HEADER_SECTION_GAP)
         content_layout.addWidget(self._header)
         content_layout.addWidget(self._entries, stretch=1)
 
@@ -61,8 +68,8 @@ class ListWithPosterLayout(QWidget):
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(self._poster, stretch=POSTER_LAYOUT_STRETCH)
+        layout.setSpacing(POSTER_CONTENT_GAP)
+        layout.addWidget(self._poster)
         layout.addWidget(right, stretch=LIST_LAYOUT_STRETCH)
 
         self._entries.currentRowChanged.connect(self._on_entry_row_changed)

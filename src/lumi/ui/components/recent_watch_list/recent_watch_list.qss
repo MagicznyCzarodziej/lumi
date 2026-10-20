@@ -7,6 +7,15 @@
 #RecentWatchList::item {
     border: none;
     padding: 0;
+    background: transparent;
+}
+
+#RecentWatchList::item:selected {
+    background: transparent;
+}
+
+#RecentWatchList::item:selected:active {
+    background: transparent;
 }
 
 #RecentWatchList QScrollBar:vertical,

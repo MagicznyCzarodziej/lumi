@@ -14,6 +14,7 @@ from lumi.ui.theme.spacing import (
     HEADER_TAG_PAD_H,
     HEADER_TAG_PAD_V,
     HEADER_TAG_ROW_MARGIN_V,
+    HEADER_TAGS_TOP_GAP,
     LIST_ROW_LEFT_INSET,
     SPACE_SM,
 )
@@ -87,6 +88,7 @@ class Header(QWidget):
         self._subtitle.setObjectName("subtitle")
         self._subtitle.setWordWrap(True)
         self._tags_container = QWidget()
+        self._tags_container.setObjectName("tagsRow")
         self._tags_layout = QHBoxLayout(self._tags_container)
         self._tags_layout.setContentsMargins(0, 0, 0, 0)
         self._tags_layout.setSpacing(HEADER_TAG_GAP)
@@ -131,8 +133,10 @@ class Header(QWidget):
         tag_values = sorted(tags or [])
         if tag_values:
             self._tags_container.show()
+            self._tags_layout.setContentsMargins(0, HEADER_TAGS_TOP_GAP, 0, 0)
             for tag in tag_values:
                 self._tags_layout.addWidget(_TagChip(tag), alignment=Qt.AlignmentFlag.AlignLeft)
             self._tags_layout.addStretch()
         else:
             self._tags_container.hide()
+            self._tags_layout.setContentsMargins(0, 0, 0, 0)

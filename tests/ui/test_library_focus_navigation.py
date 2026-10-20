@@ -122,7 +122,8 @@ def test_recent_button_navigates_to_recently_watched_and_escape_returns(qtbot) -
 
     assert router.current == RECENTLY_WATCHED
 
-    qtbot.keyClick(recent_screen.header, Qt.Key.Key_Escape)
+    recent_screen.rows.setFocus(Qt.FocusReason.OtherFocusReason)
+    qtbot.keyClick(recent_screen.rows, Qt.Key.Key_Escape)
 
     assert router.current == LIBRARY
 
@@ -155,7 +156,9 @@ def test_chrome_tag_ribbon_and_entries_form_a_vertical_focus_path(qtbot) -> None
 
     qtbot.keyClick(all_tags, Qt.Key.Key_Up)
     qtbot.wait(10)
-    assert QApplication.focusWidget() is layout.top_bar._rebuild_button
+    search = layout.top_bar.findChild(QLineEdit, "searchField")
+    assert search is not None
+    assert QApplication.focusWidget() is search
 
 
 def test_entries_right_moves_focus_to_search_chrome(qtbot) -> None:
@@ -245,7 +248,7 @@ def test_inline_tag_ribbon_composes_with_search_and_type_filters(qtbot) -> None:
     assert titles == ["Alien"]
 
 
-def test_typing_from_entries_focuses_search_and_escape_clears_then_restores_entries(qtbot) -> None:
+def test_typing_from_entries_updates_search_without_stealing_focus(qtbot) -> None:
     screen = _library_screen(qtbot)
     layout = screen._layout
     unfiltered_count = layout.entries.count()
@@ -256,18 +259,14 @@ def test_typing_from_entries_focuses_search_and_escape_clears_then_restores_entr
 
     assert screen._search_query == "alien"
     assert layout.entries.count() == 1
-    assert layout.top_bar.search_has_focus()
+    assert screen._entries_has_focus()
+    assert not layout.top_bar.search_has_focus()
 
-    qtbot.keyClick(layout.top_bar.findChild(QLineEdit, "searchField"), Qt.Key.Key_Escape)
+    qtbot.keyClick(layout.entries, Qt.Key.Key_Escape)
     qtbot.wait(10)
 
     assert screen._search_query == ""
     assert layout.entries.count() == unfiltered_count
-    assert layout.top_bar.search_has_focus()
-
-    qtbot.keyClick(layout.top_bar.findChild(QLineEdit, "searchField"), Qt.Key.Key_Escape)
-    qtbot.wait(10)
-
     assert screen._entries_has_focus()
 
 

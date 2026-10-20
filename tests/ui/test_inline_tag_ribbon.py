@@ -3,20 +3,15 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget
-
 from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
+from lumi.ui.components.inline_tag_ribbon.inline_tag_ribbon import _TagRibbonButton
 
 
-def _tag_buttons(ribbon: InlineTagRibbon) -> list[QWidget]:
-    return [
-        widget
-        for widget in ribbon.findChildren(QWidget)
-        if widget.objectName() == "tagRibbonButton"
-    ]
+def _tag_buttons(ribbon: InlineTagRibbon) -> list[_TagRibbonButton]:
+    return ribbon.findChildren(_TagRibbonButton)
 
 
-def _button_with_text(ribbon: InlineTagRibbon, text: str) -> QWidget:
+def _button_with_text(ribbon: InlineTagRibbon, text: str) -> _TagRibbonButton:
     return next(button for button in _tag_buttons(ribbon) if button.text() == text)
 
 

@@ -7,6 +7,7 @@ from pathlib import Path, PurePosixPath
 from lumi.domain.recent_watch import RecentWatchRecord
 from lumi.domain.watch_history import WatchHistory
 from lumi.infrastructure.watch_progress import (
+    forget_playback as forget_playback_record,
     load_recent_watch_records,
     load_watch_position,
     save_recent_watch_record,
@@ -60,3 +61,10 @@ class JsonWatchHistory(WatchHistory):
 
     def recent_entries(self) -> list[RecentWatchRecord]:
         return load_recent_watch_records(path=self._recent_path)
+
+    def forget_playback(self, library_path: PurePosixPath) -> None:
+        forget_playback_record(
+            library_path,
+            progress_path=self._progress_path,
+            recent_path=self._recent_path,
+        )

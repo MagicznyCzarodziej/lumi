@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, QRect, Signal
-from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPen
+from PySide6.QtGui import QColor, QKeyEvent, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -45,6 +45,11 @@ from lumi.ui.theme.spacing import (
     TOPBAR_SECTION_GAP,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
+
+
+def _strip_child_background(widget: QWidget) -> None:
+    widget.setAutoFillBackground(False)
+    widget.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
 
 
 def _paint_kb_focus_ring(painter: QPainter, outer: QRect, radius: float) -> None:
@@ -131,6 +136,7 @@ class _SearchPill(QWidget):
         super().__init__(parent)
         self.setObjectName("searchPill")
         self._search_focused = False
+        self.setAutoFillBackground(False)
 
     def set_search_focused(self, focused: bool) -> None:
         if focused == self._search_focused:
@@ -195,10 +201,18 @@ class TopBar(QWidget):
             parent=self._search_pill,
         )
         search_icon.setObjectName("searchIcon")
+        _strip_child_background(search_icon)
 
         self._search = QLineEdit(self._search_pill)
         self._search.setObjectName("searchField")
         self._search.setPlaceholderText("Search library…")
+        self._search.setFrame(False)
+        _strip_child_background(self._search)
+        search_palette = self._search.palette()
+        transparent = QColor(0, 0, 0, 0)
+        search_palette.setColor(QPalette.ColorRole.Base, transparent)
+        search_palette.setColor(QPalette.ColorRole.Window, transparent)
+        self._search.setPalette(search_palette)
         self._search.textChanged.connect(self.search_changed.emit)
         self._search.installEventFilter(self)
         search_layout.addWidget(search_icon, alignment=Qt.AlignmentFlag.AlignVCenter)
@@ -241,7 +255,7 @@ class TopBar(QWidget):
 
         self._tag_ribbon = InlineTagRibbon(self)
         self._tag_ribbon.tag_selected.connect(self.tag_filter_changed.emit)
-        self._tag_ribbon.focus_previous_requested.connect(self.focus_rebuild)
+        self._tag_ribbon.focus_previous_requested.connect(self.focus_search)
         self._tag_ribbon.focus_next_requested.connect(self.navigate_down.emit)
 
         controls = QHBoxLayout()
@@ -268,6 +282,9 @@ class TopBar(QWidget):
         self._search.blockSignals(True)
         self._search.clear()
         self._search.blockSignals(False)
+
+    def search_text(self) -> str:
+        return self._search.text()
 
     def focus_search(self) -> None:
         self._search.setFocus(Qt.FocusReason.ShortcutFocusReason)

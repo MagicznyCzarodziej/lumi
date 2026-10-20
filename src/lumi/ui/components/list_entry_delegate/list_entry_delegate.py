@@ -48,24 +48,13 @@ def _library_primary_name(name: Name) -> str:
     return name.sort_name or name.name
 
 
-def _library_secondary_name(name: Name) -> str | None:
-    if name.alternative_name:
-        return name.alternative_name
-    primary = _library_primary_name(name)
-    if name.name and name.name != primary:
-        return name.name
-    return None
-
-
 def _primary_name(model: ListEntryUiModel, strategy: NameDisplayStrategy) -> str:
     if strategy is NameDisplayStrategy.LIBRARY:
         return _library_primary_name(model.name)
     return model.name.name
 
 
-def _secondary_name(model: ListEntryUiModel, strategy: NameDisplayStrategy) -> str | None:
-    if strategy is NameDisplayStrategy.LIBRARY:
-        return _library_secondary_name(model.name)
+def _secondary_name(model: ListEntryUiModel, _strategy: NameDisplayStrategy) -> str | None:
     return model.name.alternative_name
 
 

@@ -63,6 +63,7 @@ class LibraryScreen(NavigableScreen):
         self._layout.top_bar.navigate_down.connect(self._focus_current_entry)
         self._layout.alphabet.letter_activated.connect(self._on_letter_activated)
         self._layout.alphabet.exit_to_entries.connect(self._leave_alphabet_to_entries)
+        self._layout.alphabet.clear_search_requested.connect(self._on_clear_search_requested)
         self._layout.entries.focus_left_requested.connect(self._leave_entries_to_alphabet)
         self._layout.entries.focus_right_requested.connect(self._layout.top_bar.focus_search)
         self._layout.entries.focus_up_requested.connect(self._layout.top_bar.focus_tags_or_first_filter)
@@ -242,14 +243,17 @@ class LibraryScreen(NavigableScreen):
 
     def _on_type_to_search(self, char: str) -> None:
         self._layout.top_bar.append_search_character(char)
-        self._layout.top_bar.focus_search()
 
-    def _on_clear_search_requested(self) -> None:
-        if not self._search_query:
-            return
+    def clear_search_if_active(self) -> bool:
+        if not self._search_query.strip() and not self._layout.top_bar.search_text().strip():
+            return False
         self._layout.top_bar.clear_search()
         self._search_query = ""
         self._rebuild_ui_state(is_loading=False)
+        return True
+
+    def _on_clear_search_requested(self) -> None:
+        self.clear_search_if_active()
 
     def _on_entry_row_changed(self, row: int) -> None:
         letter = active_letter_for_row(self._ui_state.entries, row)

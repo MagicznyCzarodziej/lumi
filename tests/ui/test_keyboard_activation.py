@@ -48,6 +48,32 @@ def test_top_bar_space_does_not_click_filter_button(qtbot) -> None:
     assert received == []
 
 
+def test_inline_tag_ribbon_enter_selects_tag_space_does_not(qtbot) -> None:
+    from lumi.ui.components.inline_tag_ribbon import InlineTagRibbon
+
+    ribbon = InlineTagRibbon()
+    qtbot.addWidget(ribbon)
+    ribbon.set_tags(["action", "drama"])
+    ribbon.show()
+    qtbot.waitExposed(ribbon)
+
+    selected: list[object] = []
+    ribbon.tag_selected.connect(selected.append)
+
+    action = next(
+        button
+        for button in ribbon._buttons
+        if button.text() == "Action"
+    )
+    action.setFocus()
+    qtbot.keyClick(action, Qt.Key.Key_Return)
+    assert selected == ["action"]
+
+    selected.clear()
+    qtbot.keyClick(action, Qt.Key.Key_Space)
+    assert selected == []
+
+
 def test_sidebar_enter_clicks_tag_button(qtbot) -> None:
     host = Sidebar()
     qtbot.addWidget(host)

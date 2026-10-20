@@ -5,19 +5,64 @@ from __future__ import annotations
 import json
 import logging
 import tempfile
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 
-from lumi.domain.recent_watch import RecentWatchRecord, is_resumable_position
+from lumi.domain.recent_watch import (
+    MIN_SAVE_POSITION_SECONDS,
+    RecentWatchRecord,
+    is_recent_watch_record,
+    is_resumable_position,
+)
 from lumi.infrastructure.paths import recent_watch_path, watch_progress_path
 
 logger = logging.getLogger(__name__)
 
 RECENT_WATCH_SCHEMA_VERSION = 1
+_LEGACY_BOOTSTRAP_WINDOW = timedelta(seconds=2)
 
 
 def _path_key(library_path: PurePosixPath) -> str:
     return library_path.as_posix()
+
+
+def _decode_progress_entry(raw: object) -> tuple[float | None, datetime | None]:
+    if isinstance(raw, bool):
+        return None, None
+    if isinstance(raw, int | float):
+        return float(raw), None
+    if not isinstance(raw, dict):
+        return None, None
+    position = _as_float(raw.get("position"))
+    if position is None:
+        return None, None
+    raw_watched_at = raw.get("watchedAt")
+    if not isinstance(raw_watched_at, str):
+        return position, None
+    try:
+        watched_at = datetime.fromisoformat(raw_watched_at.replace("Z", "+00:00"))
+    except ValueError:
+        return position, None
+    return position, watched_at
+
+
+def _encode_progress_entry(position: float, watched_at: datetime) -> dict[str, object]:
+    return {
+        "position": round(position, 3),
+        "watchedAt": watched_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+    }
+
+
+def _drop_legacy_bulk_bootstrap_records(
+    records: list[RecentWatchRecord],
+) -> list[RecentWatchRecord]:
+    """Remove one-shot migration dumps that share the same second and look like resume bookmarks."""
+    if len(records) < 10:
+        return records
+    watched_times = [record.watched_at for record in records]
+    if max(watched_times) - min(watched_times) > _LEGACY_BOOTSTRAP_WINDOW:
+        return records
+    return []
 
 
 def load_watch_position(
@@ -41,13 +86,12 @@ def load_watch_position(
     if not isinstance(data, dict):
         return None
 
-    raw_position = data.get(_path_key(library_path))
-    if raw_position is None:
+    raw_entry = data.get(_path_key(library_path))
+    if raw_entry is None:
         return None
 
-    try:
-        position = float(raw_position)
-    except (TypeError, ValueError):
+    position, _watched_at = _decode_progress_entry(raw_entry)
+    if position is None:
         return None
 
     if not is_resumable_position(position, duration):
@@ -81,15 +125,127 @@ def save_watch_position(
         if key in data:
             del data[key]
     else:
-        data[key] = round(position, 3)
+        data[key] = _encode_progress_entry(position, datetime.now(UTC))
 
     try:
         progress_path.parent.mkdir(parents=True, exist_ok=True)
         with progress_path.open("w", encoding="utf-8") as handle:
-            json.dump(data, handle, indent=2, sort_keys=True)
+            json.dump(data, handle, indent=2)
             handle.write("\n")
     except OSError as exc:
         logger.warning("Could not save watch progress to %s: %s", progress_path, exc)
+
+
+def clear_watch_progress(
+    library_path: PurePosixPath,
+    *,
+    path: Path | None = None,
+) -> None:
+    """Remove a saved resume bookmark for a library video."""
+    progress_path = path or watch_progress_path()
+    key = _path_key(library_path)
+
+    try:
+        if not progress_path.is_file():
+            return
+        with progress_path.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+        if not isinstance(data, dict) or key not in data:
+            return
+        del data[key]
+        if data:
+            with progress_path.open("w", encoding="utf-8") as handle:
+                json.dump(data, handle, indent=2)
+                handle.write("\n")
+        else:
+            progress_path.unlink(missing_ok=True)
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Could not clear watch progress in %s: %s", progress_path, exc)
+
+
+def remove_recent_watch_record(
+    library_path: PurePosixPath,
+    *,
+    path: Path | None = None,
+) -> None:
+    """Remove one title from the Recently watched store."""
+    records_path = path or recent_watch_path()
+    loaded = load_recent_watch_records(path=records_path)
+    records = [record for record in loaded if record.library_path != library_path]
+    if len(records) == len(loaded):
+        return
+    if records:
+        _rewrite_recent_watch_records(records_path, records)
+    else:
+        records_path.unlink(missing_ok=True)
+
+
+def forget_playback(
+    library_path: PurePosixPath,
+    *,
+    progress_path: Path | None = None,
+    recent_path: Path | None = None,
+) -> None:
+    """Clear resume progress and drop the entry from Recently watched."""
+    clear_watch_progress(library_path, path=progress_path)
+    remove_recent_watch_record(library_path, path=recent_path)
+
+
+def bootstrap_recent_watch_from_progress(
+    *,
+    progress_path: Path | None = None,
+    recent_path: Path | None = None,
+) -> bool:
+    """Fill recent-watch store from watch progress when recent data was never written."""
+    records_path = recent_path or recent_watch_path()
+    if records_path.is_file():
+        try:
+            with records_path.open(encoding="utf-8") as handle:
+                data = json.load(handle)
+            if (
+                isinstance(data, dict)
+                and data.get("version") == RECENT_WATCH_SCHEMA_VERSION
+                and isinstance(data.get("records"), list)
+                and data["records"]
+            ):
+                return False
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    progress_file = progress_path or watch_progress_path()
+    if not progress_file.is_file():
+        return False
+
+    try:
+        with progress_file.open(encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Could not read watch progress from %s: %s", progress_file, exc)
+        return False
+
+    if not isinstance(data, dict) or not data:
+        return False
+
+    progress_mtime = datetime.fromtimestamp(progress_file.stat().st_mtime, UTC)
+    migrated = False
+    items = list(data.items())
+    for index, (raw_path, raw_entry) in enumerate(items):
+        if not isinstance(raw_path, str) or not raw_path:
+            continue
+        position, watched_at = _decode_progress_entry(raw_entry)
+        if position is None or not is_recent_watch_record(position, None):
+            continue
+        if watched_at is None:
+            watched_at = progress_mtime - timedelta(seconds=len(items) - index)
+        save_recent_watch_record(
+            PurePosixPath(raw_path),
+            position,
+            duration=None,
+            watched_at=watched_at,
+            path=records_path,
+        )
+        migrated = True
+    return migrated
 
 
 def load_recent_watch_records(*, path: Path | None = None) -> list[RecentWatchRecord]:
@@ -112,11 +268,28 @@ def load_recent_watch_records(*, path: Path | None = None) -> list[RecentWatchRe
     ):
         return []
 
-    return [
+    records = [
         record
         for raw_record in data["records"]
         if (record := _decode_recent_watch_record(raw_record)) is not None
     ]
+    pruned = _drop_legacy_bulk_bootstrap_records(records)
+    if len(pruned) != len(records):
+        if pruned:
+            _rewrite_recent_watch_records(records_path, pruned)
+        else:
+            records_path.unlink(missing_ok=True)
+        records = pruned
+    records.sort(key=lambda record: record.watched_at, reverse=True)
+    return records
+
+
+def _rewrite_recent_watch_records(path: Path, records: list[RecentWatchRecord]) -> None:
+    payload = {
+        "version": RECENT_WATCH_SCHEMA_VERSION,
+        "records": [_encode_recent_watch_record(record) for record in records],
+    }
+    _write_recent_watch_payload(path, payload)
 
 
 def save_recent_watch_record(
@@ -129,19 +302,26 @@ def save_recent_watch_record(
 ) -> None:
     """Save a recently watched record, or remove it when no resume is possible."""
     records_path = path or recent_watch_path()
-    records = [
-        record
-        for record in load_recent_watch_records(path=records_path)
-        if record.library_path != library_path
-    ]
+    loaded = load_recent_watch_records(path=records_path)
+    previous = next(
+        (record for record in loaded if record.library_path == library_path),
+        None,
+    )
+    records = [record for record in loaded if record.library_path != library_path]
+    merged_duration = duration
+    if previous is not None and previous.duration is not None:
+        if merged_duration is None:
+            merged_duration = previous.duration
+        else:
+            merged_duration = max(previous.duration, merged_duration)
 
-    if is_resumable_position(position, duration):
+    if is_recent_watch_record(position, merged_duration):
         try:
             records.append(
                 RecentWatchRecord(
                     library_path=library_path,
                     position=position,
-                    duration=duration,
+                    duration=merged_duration,
                     watched_at=watched_at or datetime.now(UTC),
                 )
             )
@@ -152,7 +332,14 @@ def save_recent_watch_record(
                 exc,
             )
             return
+    elif (
+        previous is not None
+        and is_recent_watch_record(previous.position, previous.duration or merged_duration)
+        and position < MIN_SAVE_POSITION_SECONDS
+    ):
+        records.append(previous)
 
+    records.sort(key=lambda record: record.watched_at, reverse=True)
     payload = {
         "version": RECENT_WATCH_SCHEMA_VERSION,
         "records": [_encode_recent_watch_record(record) for record in records],
@@ -192,7 +379,7 @@ def _decode_recent_watch_record(raw_record: object) -> RecentWatchRecord | None:
         )
     except ValueError:
         return None
-    return record if is_resumable_position(record.position, record.duration) else None
+    return record if is_recent_watch_record(record.position, record.duration) else None
 
 
 def _encode_recent_watch_record(record: RecentWatchRecord) -> dict[str, object]:

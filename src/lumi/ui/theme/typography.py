@@ -2,7 +2,8 @@
 
 from lumi.ui.theme.scale import UI_SCALE, scaled as s
 
-FONT_FAMILY = "-apple-system, BlinkMacSystemFont, sans-serif"
+FONT_FAMILY = '"DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
+FONT_FAMILY_MONO = '"JetBrains Mono", ui-monospace, monospace'
 
 # List rows + library top bar (search, filters) — 20% larger than other chrome.
 _LIST_TOPBAR_EXTRA = 1.2

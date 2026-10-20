@@ -30,3 +30,6 @@ class WatchHistory(Protocol):
 
     def recent_entries(self) -> list[RecentWatchRecord]:
         """Return local resumable watches in persistence order."""
+
+    def forget_playback(self, library_path: PurePosixPath) -> None:
+        """Drop resume data and remove the title from Recently watched."""

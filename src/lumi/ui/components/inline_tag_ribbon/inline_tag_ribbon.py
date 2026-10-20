@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, Qt, QRect, Signal, QSize
 from PySide6.QtGui import QFont, QFontMetrics, QKeyEvent, QPainter, QPen, QColor
-from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QSizePolicy, QWidget
 
 from lumi.ui.theme.colors import (
     ALPHABET_ACTIVE_TINT,
@@ -21,26 +21,28 @@ from lumi.ui.theme.spacing import (
     FOCUS_RING_WIDTH,
     TAG_CHIP_GAP,
     TAG_CHIP_PADDING_H,
-    TAG_CHIP_PADDING_V,
+    TOPBAR_HIT_TARGET,
 )
 from lumi.ui.theme.styles import apply_widget_stylesheet
-from lumi.ui.theme.text_metrics import ink_single_line_height, ink_text_width
+from lumi.ui.theme.text_metrics import ink_text_width
 from lumi.ui.theme.typography import FONT_SIZE_TAG
 
 
-class _TagRibbonButton(QWidget):
-    """Pill tag control — QSS border-radius alone is unreliable on macOS."""
-
-    clicked = Signal()
+class _TagRibbonButton(QPushButton):
+    """Pill tag chip — QPushButton so mouse hits reliably inside TopBar."""
 
     def __init__(self, label: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("tagRibbonButton")
         self._label = label
         self._selected = False
+        super().setText("")
+        self.setFlat(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, False)
         self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setStyleSheet("border: none; background: transparent; padding: 0; margin: 0;")
 
     def text(self) -> str:
         return self._label
@@ -59,25 +61,17 @@ class _TagRibbonButton(QWidget):
     def sizeHint(self) -> QSize:
         metrics = QFontMetrics(self._font())
         width = TAG_CHIP_PADDING_H * 2 + ink_text_width(metrics, self._label)
-        height = TAG_CHIP_PADDING_V * 2 + ink_single_line_height(metrics, self._label)
-        ring = FOCUS_RING_WIDTH * 2
-        return QSize(width + ring, height + ring)
+        return QSize(width, TOPBAR_HIT_TARGET)
 
     def minimumSizeHint(self) -> QSize:
         return self.sizeHint()
 
     def paintEvent(self, event) -> None:
         del event
-        metrics = QFontMetrics(self._font())
-        inner_h = TAG_CHIP_PADDING_V * 2 + ink_single_line_height(metrics, self._label)
-        inner_w = TAG_CHIP_PADDING_H * 2 + ink_text_width(metrics, self._label)
-        ring = FOCUS_RING_WIDTH
         outer = self.rect()
-        content = outer.adjusted(ring, ring, -ring, -ring)
-        pill_x = content.x() + max(0, (content.width() - inner_w) // 2)
-        pill_y = content.y() + max(0, (content.height() - inner_h) // 2)
-        pill_rect = QRect(pill_x, pill_y, min(inner_w, content.width()), min(inner_h, content.height()))
+        pill_rect = outer
         radius = pill_rect.height() / 2
+        ring = FOCUS_RING_WIDTH
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -108,12 +102,6 @@ class _TagRibbonButton(QWidget):
         painter.setPen(QColor(text_color))
         painter.drawText(pill_rect, Qt.AlignmentFlag.AlignCenter, self._label)
         painter.end()
-
-    def mouseReleaseEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.setFocus(Qt.FocusReason.MouseFocusReason)
-            self.clicked.emit()
-        super().mouseReleaseEvent(event)
 
     def focusInEvent(self, event) -> None:
         super().focusInEvent(event)
@@ -207,6 +195,11 @@ class InlineTagRibbon(QWidget):
         if key == Qt.Key.Key_Down:
             self.focus_next_requested.emit()
             return True
+        if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self._select_tag(self._button_tags[watched])
+            return True
+        if key == Qt.Key.Key_Space:
+            return True
         return super().eventFilter(watched, event)
 
     def _clear_buttons(self) -> None:
@@ -223,7 +216,7 @@ class InlineTagRibbon(QWidget):
 
     def _insert_button(self, label: str, tag: str | None) -> None:
         button = _TagRibbonButton(label)
-        button.clicked.connect(lambda value=tag: self._select_tag(value))
+        button.clicked.connect(lambda _checked=False, value=tag: self._select_tag(value))
         button.installEventFilter(self)
         self._layout.addWidget(button)
         self._buttons.append(button)
@@ -236,4 +229,8 @@ class InlineTagRibbon(QWidget):
 
     def _sync_selected_button(self) -> None:
         for button in self._buttons:
-            button.set_selected(self._button_tags[button] == self._active_tag)
+            tag = self._button_tags[button]
+            if self._active_tag is None:
+                button.set_selected(tag is None)
+            else:
+                button.set_selected(tag == self._active_tag)

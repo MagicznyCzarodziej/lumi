@@ -7,7 +7,8 @@
 
 #LibraryStatusBar QLabel#statusText {
     color: @SIDEBAR_TEXT@;
-    font-size: @SIDEBAR_MENU_FONT_SIZE@px;
+    font-family: @FONT_FAMILY_MONO@;
+    font-size: @FONT_SIZE_XS@px;
     margin: 0;
     padding: @SPACE_SM@px;
 }

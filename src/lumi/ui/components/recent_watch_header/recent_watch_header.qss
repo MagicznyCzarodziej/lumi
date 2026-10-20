@@ -2,3 +2,11 @@
     background: transparent;
     border: none;
 }
+
+#RecentWatchHeader QLabel#recentPageTitle {
+    color: @TEXT_PRIMARY@;
+    font-size: @FONT_SIZE_TOPBAR@px;
+    font-weight: 500;
+    padding: 6px 0 0 0;
+    background: transparent;
+}

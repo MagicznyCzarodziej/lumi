@@ -8,7 +8,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeyEvent, QKeySequence, QResizeEvent
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QStackedWidget
 
-from lumi.ui.components.keyboard_helpers import is_back_key
+from lumi.ui.components.keyboard_helpers import is_back_key, is_escape_key
+from lumi.ui.screens.library.screen import LibraryScreen
 from lumi.config.settings import Settings
 from lumi.container import Container
 from lumi.domain.video_player import VideoPlayer
@@ -92,6 +93,7 @@ class MainWindow(QMainWindow):
                 watch_history=container.watch_history,
             )
             self._player_host.hide()
+            self._player_host.close_requested.connect(self._on_player_closed)
             playback = EmbeddedVideoPlayer(container.playback_uri_resolver, self._player_host)
         self._screen_context = ScreenContext(
             library_repository=container.library_repository,
@@ -211,6 +213,11 @@ class MainWindow(QMainWindow):
         if isinstance(screen, NavigableScreen):
             screen.focus_default()
 
+    def _on_player_closed(self) -> None:
+        screen = self._stack.currentWidget()
+        if isinstance(screen, RecentlyWatchedScreen):
+            screen.reload(self._screen_context)
+
     def focus_playback_path(self, path: PurePosixPath) -> bool:
         screen = self._stack.currentWidget()
         if isinstance(screen, (ListWithPosterScreen, RecentlyWatchedScreen)):
@@ -254,6 +261,11 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
+        if is_escape_key(event.key()):
+            screen = self._stack.currentWidget()
+            if isinstance(screen, LibraryScreen) and screen.clear_search_if_active():
+                event.accept()
+                return
         if is_back_key(event.key()):
             if self._player_host is not None and self._player_host.is_playing():
                 self._player_host.close_player()

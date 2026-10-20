@@ -34,23 +34,20 @@ class PosterLoader(QObject):
         self._poster_cache = poster_cache
         self._debounce_ms = debounce_ms
         self._pool = QThreadPool.globalInstance()
-        self._pending_path: PurePosixPath | None = None
-        self._active_path: PurePosixPath | None = None
-        self._generation = 0
+        self._pending_debounce: tuple[PurePosixPath, int] | None = None
+        self._load_generations: dict[str, int] = {}
         self._workers: list[PosterLoadWorker] = []
         self._memory_cache: OrderedDict[str, QPixmap] = OrderedDict()
 
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
-        self._timer.timeout.connect(self._start_load)
+        self._timer.timeout.connect(self._start_debounced_load)
 
-    def load(self, poster_path: PurePosixPath | None) -> bool:
+    def load(self, poster_path: PurePosixPath | None, *, immediate: bool = False) -> bool:
         """Load a poster. Returns True when handled synchronously from memory cache."""
         self._timer.stop()
         if poster_path is None:
-            self._pending_path = None
-            self._active_path = None
-            self._generation += 1
+            self._pending_debounce = None
             self.cleared.emit()
             return True
 
@@ -58,27 +55,34 @@ class PosterLoader(QObject):
         memory_cached = self._memory_cache.get(cache_key)
         if memory_cached is not None and not memory_cached.isNull():
             self._memory_cache.move_to_end(cache_key)
-            self._active_path = poster_path
             self.loaded.emit(poster_path, memory_cached)
             return True
 
-        self._pending_path = poster_path
-        if self._poster_cache.contains(poster_path):
-            self._start_load()
+        generation = self._bump_generation(cache_key)
+        if immediate or self._poster_cache.contains(poster_path):
+            self._start_load_worker(poster_path, generation)
             return False
 
+        self._pending_debounce = (poster_path, generation)
         self._timer.start(self._debounce_ms)
         return False
 
-    def _start_load(self) -> None:
-        poster_path = self._pending_path
-        if poster_path is None:
+    def _bump_generation(self, cache_key: str) -> int:
+        generation = self._load_generations.get(cache_key, 0) + 1
+        self._load_generations[cache_key] = generation
+        return generation
+
+    def _start_debounced_load(self) -> None:
+        pending = self._pending_debounce
+        if pending is None:
             return
+        poster_path, generation = pending
+        cache_key = poster_path.as_posix()
+        if generation != self._load_generations.get(cache_key):
+            return
+        self._start_load_worker(poster_path, generation)
 
-        self._active_path = poster_path
-        self._generation += 1
-        generation = self._generation
-
+    def _start_load_worker(self, poster_path: PurePosixPath, generation: int) -> None:
         worker = PosterLoadWorker(poster_path, self._poster_provider, self._poster_cache)
         self._workers.append(worker)
         worker.signals.finished.connect(
@@ -105,19 +109,20 @@ class PosterLoader(QObject):
 
     @Slot(object, object, int)
     def _on_finished(self, poster_path: PurePosixPath, image: QImage, generation: int) -> None:
-        if generation != self._generation or poster_path != self._active_path:
+        cache_key = poster_path.as_posix()
+        if generation != self._load_generations.get(cache_key):
             return
         pixmap = QPixmap.fromImage(image)
         if pixmap.isNull():
             self.failed.emit(poster_path, "Invalid image data")
             return
-        self._remember_in_memory_cache(poster_path.as_posix(), pixmap)
-        self._active_path = poster_path
+        self._remember_in_memory_cache(cache_key, pixmap)
         self.loaded.emit(poster_path, pixmap)
 
     @Slot(object, str, int)
     def _on_failed(self, poster_path: PurePosixPath, message: str, generation: int) -> None:
-        if generation != self._generation or poster_path != self._active_path:
+        cache_key = poster_path.as_posix()
+        if generation != self._load_generations.get(cache_key):
             return
         self.failed.emit(poster_path, message)
 

@@ -17,6 +17,9 @@ build/
 .coverage
 htmlcov/
 
+# Local scratch (visual diffs, one-off debug scripts)
+.scratch/
+
 # IDE
 .idea/
 .vscode/

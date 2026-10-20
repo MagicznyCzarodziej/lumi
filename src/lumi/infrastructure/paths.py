@@ -34,7 +34,13 @@ def default_config_dir() -> Path:
 def library_cache_path(settings: Settings) -> Path:
     if settings.cache_library_json:
         return Path(settings.cache_library_json)
-    return default_cache_dir() / "library_cache.json"
+    # Mock builds (tests, dev scripts) must not overwrite the SMB library cache.
+    filename = (
+        "library_cache.mock.json"
+        if settings.mode == "mock"
+        else "library_cache.json"
+    )
+    return default_cache_dir() / filename
 
 
 def poster_cache_dir(settings: Settings) -> Path:

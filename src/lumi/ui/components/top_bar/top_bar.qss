@@ -2,6 +2,11 @@
     background-color: transparent;
 }
 
+#TopBar QLabel#searchIcon {
+    background: transparent;
+    border: none;
+}
+
 #TopBar QLineEdit#searchField {
     background-color: transparent;
     border: none;

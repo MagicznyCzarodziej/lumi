@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from lumi.ui.layouts.header.header import Header, _TagChip
-from lumi.ui.theme.spacing import HEADER_TAG_GAP
+from lumi.ui.theme.spacing import HEADER_TAG_GAP, HEADER_TAGS_TOP_GAP
 
 
 def test_header_places_tags_in_a_compact_horizontal_ribbon(qtbot) -> None:
@@ -23,3 +23,21 @@ def test_header_places_tags_in_a_compact_horizontal_ribbon(qtbot) -> None:
     assert len(chips) == 2
     assert chips[0].y() == chips[1].y()
     assert chips[1].x() - chips[0].x() - chips[0].width() == HEADER_TAG_GAP
+
+
+def test_header_tags_sit_below_title_with_top_gap(qtbot) -> None:
+    header = Header()
+    qtbot.addWidget(header)
+    header.set_content(
+        breadcrumbs="Library › Series",
+        title="Band of Brothers",
+        tags=frozenset({"war"}),
+    )
+    header.resize(800, 200)
+    header.show()
+    qtbot.waitExposed(header)
+
+    tag_chip = next(w for w in header.findChildren(_TagChip) if w._tag == "war")
+    title_bottom = header._title.mapTo(header, header._title.rect().bottomLeft()).y()
+    chip_top = tag_chip.mapTo(header, tag_chip.rect().topLeft()).y()
+    assert chip_top - title_bottom >= HEADER_TAGS_TOP_GAP
